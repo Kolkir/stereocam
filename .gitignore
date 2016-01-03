@@ -26,3 +26,11 @@
 *.exe
 *.out
 *.app
+
+#temopraries
+*.user
+
+#Directories
+build/
+build-debug/
+build-release/
