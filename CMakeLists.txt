@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(camera)
+project(stereocam)
 
 # Tell CMake to run moc when necessary:
 set(CMAKE_AUTOMOC ON)
@@ -31,8 +31,8 @@ file(GLOB SRC_FILES src/*
     "*.cpp"
     "*.ui"
 )
-add_executable(camera ${SRC_FILES})
-target_link_libraries(camera ${OpenCV_LIBS} )
-qt5_use_modules(camera Widgets)
+add_executable(stereocam ${SRC_FILES})
+target_link_libraries(stereocam ${OpenCV_LIBS} )
+qt5_use_modules(stereocam Widgets)
 
 
