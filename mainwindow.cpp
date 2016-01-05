@@ -40,7 +40,9 @@ MainWindow::MainWindow(QWidget *parent) :
     int camerasCount = Camera::getDeviceCount();
     if (camerasCount > 0)
     {
-        for (int cam = 0; cam < 2; ++cam)
+        auto cCount = std::min(camerasCount, static_cast<int>(camNumber));
+
+        for (int cam = 0; cam < cCount; ++cam)
         {
             converter[cam].setFrameProcessor(frameProcessor[cam]);
 
@@ -64,10 +66,10 @@ MainWindow::MainWindow(QWidget *parent) :
             switch (cam)
             {
             case 0:
-                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera_triggered1(int)));
+                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera1_triggered(int)));
                 break;
             case 1:
-                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera_triggered2(int)));
+                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera2_triggered(int)));
                 break;
             default:
                 throw std::logic_error("There is no signal for camera");
@@ -484,7 +486,7 @@ void MainWindow::on_action1280_x_1024_triggered()
     }
 }
 
-void MainWindow::on_actionSnapshoot_triggered()
+void MainWindow::on_actionSnapshot_triggered()
 {
     QDir wdir(workingDir);
     if (!wdir.exists())

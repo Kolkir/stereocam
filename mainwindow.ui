@@ -94,6 +94,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionWork_Directory"/>
+    <addaction name="actionCalibrate"/>
     <addaction name="actionSnapshot"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
@@ -122,7 +123,6 @@
      <string>Camera1</string>
     </property>
     <addaction name="actionLoad_Calibration_1"/>
-    <addaction name="actionCalibrate_1"/>
     <addaction name="actionUndistort_1"/>
    </widget>
    <widget class="QMenu" name="menuResolution">
@@ -139,7 +139,6 @@
      <string>Camera2</string>
     </property>
     <addaction name="actionLoad_Calibration_2"/>
-    <addaction name="actionCalibrate_2"/>
     <addaction name="actionUndistort_2"/>
    </widget>
    <addaction name="menuFile"/>
@@ -312,6 +311,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionCalibrate">
+   <property name="text">
+    <string>Calibrate ...</string>
    </property>
   </action>
  </widget>

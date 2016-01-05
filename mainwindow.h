@@ -67,7 +67,7 @@ private slots:
 
     void on_action1280_x_1024_triggered();
 
-    void on_actionSnapshoot_triggered();
+    void on_actionSnapshot_triggered();
 
     void on_actionWork_Directory_triggered();
 
