@@ -32,7 +32,7 @@ enum COLOR_TYPE
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
+    static const int camNumber = 2;
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -52,8 +52,12 @@ private slots:
     void on_actionRed_channel_triggered();
     void on_actionGreen_channel_triggered();
     void on_actionBlue_channel_triggered();
-    void on_actionCamera_triggered(int id);
-    void setImage(const QImage & img);
+
+    void on_actionCamera1_triggered(int id);
+    void on_actionCamera2_triggered(int id);
+
+    void setImage1(const QImage & img);
+    void setImage2(const QImage & img);
 
     void on_action320_x_240_triggered();
 
@@ -69,12 +73,15 @@ private slots:
 
     void on_actionCalibrate_triggered();
 
-    void on_actionApply_undistort_triggered();
+    void on_actionUndistort_1_triggered();
+    void on_actionUndistort_2_triggered();
 
-    void on_actionLoad_calibration_triggered();
+    void on_actionLoad_Calibration_1_triggered();
+    void on_actionLoad_Calibration_2_triggered();
 
 private:
 
+    void setImage(const QImage &img, int imgIndex);
     void scaleImage(double factor);
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
     void updateActions();
@@ -86,7 +93,7 @@ private:
 
 private:
 
-    QImage currentQImage; //for paint event
+    QImage currentQImage[camNumber]; //for paint event
     QSize currentSize;
 
     Ui::MainWindow *ui;
@@ -102,14 +109,14 @@ private:
 
     COLOR_TYPE colorViewType;    
 
-    FrameProcessor frameProcessor;
-    Camera camera;
-    int currentCamera;
+    FrameProcessor frameProcessor[camNumber];
+    Camera camera[camNumber];
+    int currentCamera[camNumber];
 
-    QSignalMapper *signalMapper;
+    QSignalMapper* signalMapper[camNumber];
 
-    QThread converterThread;
-    QFrameConverter converter;
+    QThread converterThread[camNumber];
+    QFrameConverter converter[camNumber];
 
     QString workingDir;
 };

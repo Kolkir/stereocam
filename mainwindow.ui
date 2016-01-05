@@ -42,20 +42,34 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLabel" name="imageLabel">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="scaledContents">
-             <bool>true</bool>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLabel" name="imageLabel1">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="imageLabel2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -80,7 +94,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionWork_Directory"/>
-    <addaction name="actionLoad_calibration"/>
+    <addaction name="actionSnapshot"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -103,10 +117,13 @@
     <addaction name="actionGreen_channel"/>
     <addaction name="actionBlue_channel"/>
    </widget>
-   <widget class="QMenu" name="menuCamera">
+   <widget class="QMenu" name="menuCamera1">
     <property name="title">
-     <string>Camera</string>
+     <string>Camera1</string>
     </property>
+    <addaction name="actionLoad_Calibration_1"/>
+    <addaction name="actionCalibrate_1"/>
+    <addaction name="actionUndistort_1"/>
    </widget>
    <widget class="QMenu" name="menuResolution">
     <property name="title">
@@ -117,20 +134,20 @@
     <addaction name="action1024_x_768"/>
     <addaction name="action1280_x_1024"/>
    </widget>
-   <widget class="QMenu" name="menuTools">
+   <widget class="QMenu" name="menuCamera2">
     <property name="title">
-     <string>Tools</string>
+     <string>Camera2</string>
     </property>
-    <addaction name="actionSnapshoot"/>
-    <addaction name="actionCalibrate"/>
-    <addaction name="actionApply_undistort"/>
+    <addaction name="actionLoad_Calibration_2"/>
+    <addaction name="actionCalibrate_2"/>
+    <addaction name="actionUndistort_2"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuCamera"/>
+   <addaction name="menuCamera1"/>
+   <addaction name="menuCamera2"/>
    <addaction name="menuView"/>
    <addaction name="menuColor"/>
    <addaction name="menuResolution"/>
-   <addaction name="menuTools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -248,35 +265,53 @@
     <string>320 x 240</string>
    </property>
   </action>
-  <action name="actionSnapshoot">
-   <property name="text">
-    <string>Snapshoot</string>
-   </property>
-   <property name="shortcut">
-    <string>Shift+S</string>
-   </property>
-  </action>
   <action name="actionWork_Directory">
    <property name="text">
     <string>Work Directory ...</string>
    </property>
   </action>
-  <action name="actionCalibrate">
+  <action name="actionLoad_Calibration_1">
+   <property name="text">
+    <string>Load Calibration ...</string>
+   </property>
+  </action>
+  <action name="actionLoad_Calibration_2">
+   <property name="text">
+    <string>Load Calibration ...</string>
+   </property>
+  </action>
+  <action name="actionCalibrate_1">
    <property name="text">
     <string>Calibrate ...</string>
    </property>
   </action>
-  <action name="actionApply_undistort">
+  <action name="actionCalibrate_2">
+   <property name="text">
+    <string>Calibrate ...</string>
+   </property>
+  </action>
+  <action name="actionUndistort_1">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Apply undistort</string>
+    <string>Undistort</string>
    </property>
   </action>
-  <action name="actionLoad_calibration">
+  <action name="actionUndistort_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>Load calibration ...</string>
+    <string>Undistort</string>
+   </property>
+  </action>
+  <action name="actionSnapshot">
+   <property name="text">
+    <string>Snapshot</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
  </widget>

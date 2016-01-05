@@ -4,9 +4,16 @@
 #include <QImage>
 #include <QThread>
 
+QFrameConverter::QFrameConverter(QObject *parent)
+    : QObject(parent)
+    , stopTimer(false)
+{
+
+}
+
 QFrameConverter::QFrameConverter(FrameProcessor& frameProcessor, QObject *parent)
     : QObject(parent)
-    , frameProcessor(frameProcessor)
+    , frameProcessor(&frameProcessor)
     , stopTimer(false)
 {
     timer.start(0, this);
@@ -20,7 +27,7 @@ void QFrameConverter::timerEvent(QTimerEvent * ev)
     }
     else
     {
-        frameProcessor.getFrame(frame);
+        frameProcessor->getFrame(frame);
 
         if (!frame.empty())
         {
@@ -58,5 +65,11 @@ void QFrameConverter::timerEvent(QTimerEvent * ev)
 void QFrameConverter::stop()
 {
     stopTimer = true;
+}
+
+void QFrameConverter::setFrameProcessor(FrameProcessor &frameProcessor)
+{
+    this->frameProcessor = &frameProcessor;
+    timer.start(0, this);
 }
 

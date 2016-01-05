@@ -14,8 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     currentX(0),
     currentY(0),
     colorViewType(COLOR_RGB),
-    currentCamera(-1),
-    converter(frameProcessor),
+    currentCamera{-1,-1},
     workingDir(QDir::currentPath())
 {
     ui->setupUi(this);
@@ -30,63 +29,98 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->statusbar->addWidget(colorStatusLabel);
     ui->statusbar->addWidget(resolutionStatusLabel);
 
-    ui->imageLabel->installEventFilter(this);
-    ui->imageLabel->setMouseTracking(true);
+    ui->imageLabel1->installEventFilter(this);
+    ui->imageLabel1->setMouseTracking(true);
+    ui->imageLabel2->installEventFilter(this);
+    ui->imageLabel2->setMouseTracking(true);
 
-    signalMapper = new QSignalMapper(this);
+    QMenu* cameraMenu[2] = {ui->menuCamera1, ui->menuCamera2};
 
     //initialize camera menu
     int camerasCount = Camera::getDeviceCount();
     if (camerasCount > 0)
     {
-        currentCamera = 0;
-        for (int i = 0; i < camerasCount; ++i)
+        for (int cam = 0; cam < 2; ++cam)
         {
-            auto action = ui->menuCamera->addAction(QString("Camera : %1 ").arg(i));
-            action->setCheckable(true);
-            if (i == currentCamera)
+            converter[cam].setFrameProcessor(frameProcessor[cam]);
+
+            signalMapper[cam] = new QSignalMapper(this);
+
+            currentCamera[cam] = cam;
+
+            for (int i = 0; i < camerasCount; ++i)
             {
-                action->setChecked(true);
+                auto action = cameraMenu[cam]->addAction(QString("Camera : %1 ").arg(i));
+                action->setCheckable(true);
+                if (i == currentCamera[cam])
+                {
+                    action->setChecked(true);
+                }
+
+                connect(action, SIGNAL(triggered()), signalMapper[cam], SLOT(map()));
+                signalMapper[cam]->setMapping(action, i);
             }
 
-            connect(action, SIGNAL(triggered()), signalMapper, SLOT(map()));
-            signalMapper->setMapping(action, i);
-        }
+            switch (cam)
+            {
+            case 0:
+                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera_triggered1(int)));
+                break;
+            case 1:
+                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera_triggered2(int)));
+                break;
+            default:
+                throw std::logic_error("There is no signal for camera");
+            }
 
-        connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(on_actionCamera_triggered(int)));
 
-        camera.setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor, std::placeholders::_1));
+            camera[cam].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[cam], std::placeholders::_1));
 
-        if (camera.startCapture(currentCamera))
-        {
-            frameProcessor.startProcessing();
+            if (camera[cam].startCapture(currentCamera[cam]))
+            {
+                frameProcessor[cam].startProcessing();
 
-            converterThread.start();
-            converter.moveToThread(&converterThread);
+                converterThread[cam].start();
+                converter[cam].moveToThread(&converterThread[cam]);
 
-            connect(&converter, SIGNAL(imageReady(QImage)), this, SLOT(setImage(QImage)));
-        }
-        else
-        {
-            throw std::logic_error("Camera initialization failed");
+                switch (cam)
+                {
+                case 0:
+                    connect(&converter[cam], SIGNAL(imageReady(QImage)), this, SLOT(setImage1(QImage)));
+                    break;
+                case 1:
+                    connect(&converter[cam], SIGNAL(imageReady(QImage)), this, SLOT(setImage2(QImage)));
+                    break;
+                default:
+                    throw std::logic_error("There is no signal for camera");
+                }
+
+            }
+            else
+            {
+                throw std::logic_error("Camera initialization failed");
+            }
         }
     }
-
     resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
     updateActions();
 }
 
 MainWindow::~MainWindow()
 {
-    converter.stop();
-    converterThread.quit();
-    converterThread.wait();
+    for(int i = 0; i < camNumber; ++i)
+    {
+        converter[i].stop();
+        converterThread[i].quit();
+        converterThread[i].wait();
+    }
     delete ui;
 }
 
 bool MainWindow::eventFilter(QObject *target, QEvent *event)
 {
-    if (target == ui->imageLabel && event->type() == QEvent::MouseMove)
+    if ((target == ui->imageLabel1 || target == ui->imageLabel2)
+         && event->type() == QEvent::MouseMove)
     {
         QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
         if (mouseEvent != nullptr)
@@ -94,27 +128,38 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event)
             currentX = mouseEvent->x();
             currentY = mouseEvent->y();
             updateStatusBar();
-            ui->imageLabel->update();
+            ui->imageLabel1->update();
+            ui->imageLabel2->update();
         }
     }
-    else if (target == ui->imageLabel && event->type() == QEvent::Paint)
+    else if ((target == ui->imageLabel1 || target == ui->imageLabel2)
+             && event->type() == QEvent::Paint)
     {
-        QPaintEvent* paintEvent = dynamic_cast<QPaintEvent*>(event);
-        if (paintEvent != nullptr && !currentQImage.isNull())
+        auto imagePaint = [&](QLabel* imageLabel, int cam) -> bool
         {
-            QPainter painter(ui->imageLabel);
-
-            if (ui->scrollArea->widgetResizable())
+            if (imageLabel != nullptr)
             {
-                painter.drawImage(0,0, currentQImage.scaled(paintEvent->rect().size()));
+                QPaintEvent* paintEvent = dynamic_cast<QPaintEvent*>(event);
+                if (paintEvent != nullptr && !currentQImage[cam].isNull())
+                {
+                    QPainter painter(imageLabel);
+
+                    if (ui->scrollArea->widgetResizable())
+                    {
+                        painter.drawImage(0,0, currentQImage[cam].scaled(paintEvent->rect().size()));
+                    }
+                    else
+                    {
+                        painter.drawImage(paintEvent->rect(), currentQImage[cam], paintEvent->rect());
+                    }
+                    return true;
+                }
             }
-            else
-            {
-                painter.drawImage(paintEvent->rect(), currentQImage, paintEvent->rect());
-            }           
+            return false;
+        };
 
-            return true;
-        }
+        int cam = target == ui->imageLabel1 ? 0 : 1;
+        return imagePaint(dynamic_cast<QLabel*>(target), cam);
     }
     return QMainWindow::eventFilter(target, event);
 }
@@ -128,7 +173,10 @@ void MainWindow::on_actionFit_to_window_triggered()
 {    
     ui->scrollArea->setWidgetResizable(true);
     scaleFactor = 1.0;
-    frameProcessor.setOutScaleFactor(scaleFactor);
+    for (int i = 0; i < camNumber; ++i)
+    {
+        frameProcessor[i].setOutScaleFactor(scaleFactor);
+    }
     updateStatusBar();
 }
 
@@ -136,9 +184,24 @@ void MainWindow::on_action100_triggered()
 {
     ui->scrollArea->setWidgetResizable(false);
     scaleFactor = 1.0;
-    frameProcessor.setOutScaleFactor(scaleFactor);
-    ui->imageLabel->resize(currentSize);
-    ui->scrollArea->widget()->resize(currentSize);
+    for (int i = 0; i < camNumber; ++i)
+    {
+        frameProcessor[i].setOutScaleFactor(scaleFactor);
+        switch(i)
+        {
+            case 0:
+                ui->imageLabel1->resize(currentSize);
+                break;
+            case 1:
+                ui->imageLabel2->resize(currentSize);
+                break;
+            default:
+                throw std::logic_error("There is no camera with index" + std::to_string(i));
+        }
+    }
+
+    QSize totalSize(currentSize.width() * 2, currentSize.height());
+    ui->scrollArea->widget()->resize(totalSize);
     updateStatusBar();
 }
 
@@ -149,10 +212,25 @@ void MainWindow::scaleImage(double factor)
     double scrollfactor = (scaleFactor + factor) / scaleFactor;
     scaleFactor += factor;
 
-    frameProcessor.setOutScaleFactor(scaleFactor);
+    for (int i = 0; i < camNumber; ++i)
+    {
+        frameProcessor[i].setOutScaleFactor(scaleFactor);
 
-    ui->imageLabel->resize(currentSize);
-    ui->scrollArea->widget()->resize(currentSize);
+        switch(i)
+        {
+            case 0:
+                ui->imageLabel1->resize(currentSize);
+                break;
+            case 1:
+                ui->imageLabel2->resize(currentSize);
+                break;
+            default:
+                throw std::logic_error("There is no camera with index" + std::to_string(i));
+        }
+    }
+
+    QSize totalSize(currentSize.width() * 2, currentSize.height());
+    ui->scrollArea->widget()->resize(totalSize);
 
     adjustScrollBar(ui->scrollArea->horizontalScrollBar(), scrollfactor);
     adjustScrollBar(ui->scrollArea->verticalScrollBar(), scrollfactor);
@@ -176,8 +254,40 @@ void MainWindow::on_actionZoom_Out_triggered()
 
 void MainWindow::updateActions()
 {
-    if (!currentQImage.isNull())
+    bool imageExist = false;
+    bool canSnap = false;
+
+    for (int i = 0; i < camNumber; ++i)
     {
+        bool enable = false;
+        if (!currentQImage[i].isNull())
+        {
+            imageExist = true;
+            enable = true;
+            canSnap &= camera[i].canTakeSnapshoot();
+        }
+
+        switch(i)
+        {
+        case 0:
+            ui->actionLoad_Calibration_1->setEnabled(enable);
+            ui->actionCalibrate_1->setEnabled(enable);
+            ui->actionUndistort_1->setEnabled(enable);
+            break;
+        case 1:
+            ui->actionLoad_Calibration_2->setEnabled(enable);
+            ui->actionCalibrate_2->setEnabled(enable);
+            ui->actionUndistort_2->setEnabled(enable);
+            break;
+        default:
+            throw std::logic_error("There is no camera with index " + std::to_string(i));
+        }
+    }
+
+    ui->actionSnapshot->setEnabled(canSnap);
+
+    if (imageExist)
+    {        
         ui->actionZoom_In->setEnabled(true);
         ui->actionZoom_Out->setEnabled(true);
         ui->action100->setEnabled(true);
@@ -191,18 +301,7 @@ void MainWindow::updateActions()
         ui->action320_x_240->setEnabled(true);
         ui->action640_x_480->setEnabled(true);
         ui->action1024_x_768->setEnabled(true);
-        ui->action1280_x_1024->setEnabled(true);
-
-        if (camera.canTakeSnapshoot())
-        {
-            ui->actionSnapshoot->setEnabled(true);
-        }
-        else
-        {
-            ui->actionSnapshoot->setEnabled(false);
-        }
-        ui->actionCalibrate->setEnabled(true);
-        ui->actionApply_undistort->setEnabled(true);
+        ui->action1280_x_1024->setEnabled(true);        
     }
     else
     {
@@ -219,10 +318,7 @@ void MainWindow::updateActions()
         ui->action320_x_240->setEnabled(false);
         ui->action640_x_480->setEnabled(false);
         ui->action1024_x_768->setEnabled(false);
-        ui->action1280_x_1024->setEnabled(false);
-        ui->actionSnapshoot->setEnabled(false);
-        ui->actionCalibrate->setEnabled(false);
-        ui->actionApply_undistort->setEnabled(false);
+        ui->action1280_x_1024->setEnabled(false);        
     }
 }
 
@@ -231,18 +327,9 @@ void MainWindow::updateStatusBar()
     scaleStatusLabel->setText(QString("Scale : %1 ").arg(static_cast<int>(scaleFactor * 100)));
     coordsStatusLabel->setText(QString("Pos : %1, %2 ").arg(static_cast<int>(currentX / scaleFactor)).arg(static_cast<int>(currentY / scaleFactor)));
 
-    if (!currentQImage.isNull())
-    {
-        if (currentX < currentQImage.width() &&
-            currentY < currentQImage.height())
-        {
-            QRgb color = currentQImage.pixel(currentX, currentY);
-            colorStatusLabel->setText(QString("Color : %1 %2 %3").arg(qRed(color)).arg(qGreen(color)).arg(qBlue(color)));
-        }
-
-        auto res = camera.getResolution();
-        resolutionStatusLabel->setText(QString("Resolution : %1 x %2").arg(res.width).arg(res.height));
-    }
+    auto res1 = camera[0].getResolution();
+    auto res2 = camera[1].getResolution();
+    resolutionStatusLabel->setText(QString("Resolution : %1 x %2, %3 x %4").arg(res1.width).arg(res1.height).arg(res2.width).arg(res2.height));
 }
 
 void MainWindow::updateColorViewType(COLOR_TYPE type)
@@ -255,28 +342,31 @@ void MainWindow::updateColorViewType(COLOR_TYPE type)
     ui->actionGreen_channel->setChecked(colorViewType == COLOR_GREEN);
     ui->actionBlue_channel->setChecked(colorViewType == COLOR_BLUE);
 
-    switch(type)
+    for (int i = 0; i < camNumber; ++i)
     {
-    case COLOR_RGB:
-        frameProcessor.setOutChannel(-1);
-        frameProcessor.setOutGray(false);
-        break;
-    case COLOR_GRAY:
-        frameProcessor.setOutChannel(-1);
-        frameProcessor.setOutGray(true);
-        break;
-    case COLOR_RED:
-        frameProcessor.setOutChannel(0);
-        frameProcessor.setOutGray(false);
-        break;
-    case COLOR_GREEN:
-        frameProcessor.setOutChannel(1);
-        frameProcessor.setOutGray(false);
-        break;
-    case COLOR_BLUE:
-        frameProcessor.setOutChannel(2);
-        frameProcessor.setOutGray(false);
-        break;
+        switch(type)
+        {
+        case COLOR_RGB:
+            frameProcessor[i].setOutChannel(-1);
+            frameProcessor[i].setOutGray(false);
+            break;
+        case COLOR_GRAY:
+            frameProcessor[i].setOutChannel(-1);
+            frameProcessor[i].setOutGray(true);
+            break;
+        case COLOR_RED:
+            frameProcessor[i].setOutChannel(0);
+            frameProcessor[i].setOutGray(false);
+            break;
+        case COLOR_GREEN:
+            frameProcessor[i].setOutChannel(1);
+            frameProcessor[i].setOutGray(false);
+            break;
+        case COLOR_BLUE:
+            frameProcessor[i].setOutChannel(2);
+            frameProcessor[i].setOutGray(false);
+            break;
+        }
     }
 }
 
@@ -309,49 +399,89 @@ void MainWindow::closeEvent(QCloseEvent*)
 {
 }
 
-void MainWindow::on_actionCamera_triggered(int id)
+void MainWindow::on_actionCamera1_triggered(int id)
 {
-    for(auto a : ui->menuCamera->actions())
+    for(auto a : ui->menuCamera1->actions())
     {
         a->setChecked(false);
     }
-    QAction* action = static_cast<QAction*>(signalMapper->mapping(id));
+    QAction* action = static_cast<QAction*>(signalMapper[0]->mapping(id));
     action->setChecked(true);
 
-    camera.startCapture(id);
+    camera[0].startCapture(id);
 }
 
-void MainWindow::setImage(const QImage &img)
+void MainWindow::on_actionCamera2_triggered(int id)
 {
-    currentQImage = img;
-    currentSize = img.size();
+    for(auto a : ui->menuCamera2->actions())
+    {
+        a->setChecked(false);
+    }
+    QAction* action = static_cast<QAction*>(signalMapper[1]->mapping(id));
+    action->setChecked(true);
 
-    ui->imageLabel->resize(currentSize);
-    ui->scrollArea->widget()->resize(currentSize);
+    camera[1].startCapture(id);
+}
 
-    ui->imageLabel->update();
+void MainWindow::setImage(const QImage &img, int imgIndex)
+{
+    currentQImage[imgIndex] = img;
+
+    QSize totalSize(currentSize.width() * 2, currentSize.height());
+    ui->scrollArea->widget()->resize(totalSize);
+
     update();
     updateActions();
 }
 
+void MainWindow::setImage1(const QImage &img)
+{
+    currentSize = img.size();
+
+    setImage(img, 0);
+
+    ui->imageLabel1->update();
+}
+
+void MainWindow::setImage2(const QImage &img)
+{
+    currentSize = img.size();
+
+    setImage(img, 1);
+
+    ui->imageLabel2->update();
+}
+
 void MainWindow::on_action320_x_240_triggered()
 {
-    camera.setResolution(cv::Size(320,200));
+    for (auto& cam : camera)
+    {
+        cam.setResolution(cv::Size(320,200));
+    }
 }
 
 void MainWindow::on_action640_x_480_triggered()
 {
-    camera.setResolution(cv::Size(640,480));
+    for (auto& cam : camera)
+    {
+        cam.setResolution(cv::Size(640,480));
+    }
 }
 
 void MainWindow::on_action1024_x_768_triggered()
 {
-    camera.setResolution(cv::Size(1024,768));
+    for (auto& cam : camera)
+    {
+        cam.setResolution(cv::Size(1024,768));
+    }
 }
 
 void MainWindow::on_action1280_x_1024_triggered()
 {
-    camera.setResolution(cv::Size(1280,1024));
+    for (auto& cam : camera)
+    {
+        cam.setResolution(cv::Size(1280,1024));
+    }
 }
 
 void MainWindow::on_actionSnapshoot_triggered()
@@ -362,9 +492,15 @@ void MainWindow::on_actionSnapshoot_triggered()
         QDir().mkdir(workingDir);
     }
 
-    const QString filename = workingDir + utils::getTimestampFileName("/snap","png");
+    for (int i = 0; i < camNumber; ++i)
+    {
+        const QString filename = workingDir + utils::getTimestampFileName(QString("/snap_%1").arg(i),"png");
 
-    camera.takeSnapshoot(filename.toStdString());
+        if (camera[i].canTakeSnapshoot())
+        {
+            camera[i].takeSnapshoot(filename.toStdString());
+        }
+    }
     updateActions();
 }
 
@@ -414,18 +550,41 @@ void MainWindow::on_actionCalibrate_triggered()
     }
 }
 
-void MainWindow::on_actionApply_undistort_triggered()
+void MainWindow::on_actionUndistort_1_triggered()
 {
-    frameProcessor.setApplyUndistort(!frameProcessor.isUndistortApplied());
-    ui->actionApply_undistort->setChecked(frameProcessor.isUndistortApplied());
+    frameProcessor[0].setApplyUndistort(!frameProcessor[0].isUndistortApplied());
+    ui->actionUndistort_1->setChecked(frameProcessor[0].isUndistortApplied());
 }
 
-void MainWindow::on_actionLoad_calibration_triggered()
+void MainWindow::on_actionUndistort_2_triggered()
+{
+    frameProcessor[1].setApplyUndistort(!frameProcessor[1].isUndistortApplied());
+    ui->actionUndistort_2->setChecked(frameProcessor[1].isUndistortApplied());
+}
+
+
+void MainWindow::on_actionLoad_Calibration_1_triggered()
 {
     QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
     if (!fileName.isNull())
     {
-        if (frameProcessor.loadCalibrationParams(fileName.toStdString()))
+        if (frameProcessor[0].loadCalibrationParams(fileName.toStdString()))
+        {
+            QMessageBox::information(this, tr("Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("Calibration"), tr("Load failed!"));
+        }
+    }
+}
+
+void MainWindow::on_actionLoad_Calibration_2_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
+    if (!fileName.isNull())
+    {
+        if (frameProcessor[1].loadCalibrationParams(fileName.toStdString()))
         {
             QMessageBox::information(this, tr("Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
         }

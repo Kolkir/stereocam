@@ -12,6 +12,7 @@ class QFrameConverter : public QObject
 {
     Q_OBJECT
 public:
+    explicit QFrameConverter(QObject *parent = 0);
     explicit QFrameConverter(FrameProcessor& frameProcessor, QObject *parent = 0);
 
     void timerEvent(QTimerEvent * ev) override;
@@ -20,8 +21,10 @@ public:
 
     void stop();
 
+    void setFrameProcessor(FrameProcessor& frameProcessor);
+
 private:
-    FrameProcessor& frameProcessor;
+    FrameProcessor* frameProcessor;
     QBasicTimer timer;
     cv::Mat frame;
     bool stopTimer;
