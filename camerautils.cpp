@@ -1,5 +1,7 @@
 #include "camerautils.h"
 
+#include <stdexcept>
+
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -13,19 +15,52 @@
 namespace camera {
 namespace utils {
 
-std::string getDeviceName(int id)
+
+ScopedVideoDevice::ScopedVideoDevice(int id)
 {
     auto devName = "/dev/video" + std::to_string(id);
     int fd = open(devName.c_str(), O_RDWR);
-    if((fd) >= 0)
+    if((fd) < 0)
     {
+        throw std::runtime_error("Unable open video device : " + devName);
+    }
+    devFileName = devName;
+    fileDesc = fd;
+}
+
+ScopedVideoDevice::~ScopedVideoDevice()
+{
+    close(fileDesc);
+}
+
+const std::string& ScopedVideoDevice::fileName() const
+{
+    return devFileName;
+}
+
+int ScopedVideoDevice::fd() const
+{
+    return fileDesc;
+}
+
+
+std::string getDeviceName(int id)
+{
+    std::string devName;
+    try
+    {
+        ScopedVideoDevice dev(id);
         struct v4l2_capability capabilities;
-        if(ioctl(fd, VIDIOC_QUERYCAP, &capabilities) >= 0)
+        if(ioctl(dev.fd(), VIDIOC_QUERYCAP, &capabilities) >= 0)
         {
             devName = reinterpret_cast<char*>(capabilities.card);
         }
-        close(fd);
     }
+    catch(...)
+    {
+        //ignore, return empty string
+    }
+
     return devName;
 }
 
@@ -59,35 +94,34 @@ std::vector<VideoDevId> getDeviceList()
 std::vector<VideoDevFormat> getDeviceFormats(int id)
 {
     std::vector<VideoDevFormat> formats;
-
-    auto devName = "/dev/video" + std::to_string(id);
-    int fd = open(devName.c_str(), O_RDWR);
-    if((fd) >= 0)
+    try
     {
+        ScopedVideoDevice dev(id);
         VideoDevFormat format;
         struct v4l2_fmtdesc fmtdesc;
         fmtdesc.index = 0;
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         for(;;)
         {
-            auto err = ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc);
+            auto err = ioctl(dev.fd(), VIDIOC_ENUM_FMT, &fmtdesc);
             if  (err >= 0)
             {
                 format.description = reinterpret_cast<char*>(fmtdesc.description);
-                format.format = fmtdesc.pixelformat;
+                format.pixelformat = fmtdesc.pixelformat;
                 //enumerate frame sizes
                 v4l2_frmsizeenum frmsize;
                 frmsize.pixel_format = fmtdesc.pixelformat;
                 frmsize.index = 0;
                 for(;;)
                 {
-                    err = ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize);
+                    err = ioctl(dev.fd(), VIDIOC_ENUM_FRAMESIZES, &frmsize);
                     if (err >= 0)
                     {
                         if (frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE)
                         {
                             format.width = frmsize.discrete.width;
                             format.height = frmsize.discrete.height;
+                            format.description += " " + std::to_string(format.width) + "x" + std::to_string(format.height);
                             formats.push_back(format);
                         }
                     }
@@ -104,7 +138,10 @@ std::vector<VideoDevFormat> getDeviceFormats(int id)
             }
             fmtdesc.index += 1;
         }
-        close(fd);
+    }
+    catch(...)
+    {
+        //ignore, return empty list
     }
 
     return formats;

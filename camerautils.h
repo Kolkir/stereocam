@@ -20,14 +20,29 @@ std::vector<VideoDevId> getDeviceList();
 
 struct VideoDevFormat
 {
-    VideoDevFormat() : format(0), width(0), height(0) {}
+    VideoDevFormat() : pixelformat(0), width(0), height(0) {}
     std::string description;
-    unsigned int format;
+    unsigned int pixelformat;
     unsigned int width;
     unsigned int height;
 };
 
 std::vector<VideoDevFormat> getDeviceFormats(int id);
+
+class ScopedVideoDevice
+{
+public:
+    ScopedVideoDevice(int id);
+    ~ScopedVideoDevice();
+    ScopedVideoDevice(const ScopedVideoDevice&) = delete;
+    ScopedVideoDevice& operator=(const ScopedVideoDevice&) = delete;
+
+    int fd() const;
+    const std::string& fileName() const;
+private:
+    std::string devFileName;
+    int fileDesc;
+};
 
 }}
 
