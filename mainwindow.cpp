@@ -1,7 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "utils.h"
-#include "calibparams.h"
+#include "calibparamsdialog.h"
+#include "camerasetupdialog.h"
 
 #include <QtWidgets>
 
@@ -34,76 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->imageLabel2->installEventFilter(this);
     ui->imageLabel2->setMouseTracking(true);
 
-    QMenu* cameraMenu[2] = {ui->menuCamera1, ui->menuCamera2};
 
-    //initialize camera menu
-    int camerasCount = Camera::getDeviceCount();
-    if (camerasCount > 0)
-    {
-        auto cCount = std::min(camerasCount, static_cast<int>(camNumber));
-
-        for (int cam = 0; cam < cCount; ++cam)
-        {
-            converter[cam].setFrameProcessor(frameProcessor[cam]);
-
-            signalMapper[cam] = new QSignalMapper(this);
-
-            currentCamera[cam] = cam;
-
-            for (int i = 0; i < camerasCount; ++i)
-            {
-                auto action = cameraMenu[cam]->addAction(QString("Camera : %1 ").arg(i));
-                action->setCheckable(true);
-                if (i == currentCamera[cam])
-                {
-                    action->setChecked(true);
-                }
-
-                connect(action, SIGNAL(triggered()), signalMapper[cam], SLOT(map()));
-                signalMapper[cam]->setMapping(action, i);
-            }
-
-            switch (cam)
-            {
-            case 0:
-                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera1_triggered(int)));
-                break;
-            case 1:
-                connect(signalMapper[cam], SIGNAL(mapped(int)), this, SLOT(on_actionCamera2_triggered(int)));
-                break;
-            default:
-                throw std::logic_error("There is no signal for camera");
-            }
-
-
-            camera[cam].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[cam], std::placeholders::_1));
-
-            if (camera[cam].startCapture(currentCamera[cam]))
-            {
-                frameProcessor[cam].startProcessing();
-
-                converterThread[cam].start();
-                converter[cam].moveToThread(&converterThread[cam]);
-
-                switch (cam)
-                {
-                case 0:
-                    connect(&converter[cam], SIGNAL(imageReady(QImage)), this, SLOT(setImage1(QImage)));
-                    break;
-                case 1:
-                    connect(&converter[cam], SIGNAL(imageReady(QImage)), this, SLOT(setImage2(QImage)));
-                    break;
-                default:
-                    throw std::logic_error("There is no signal for camera");
-                }
-
-            }
-            else
-            {
-                throw std::logic_error("Camera initialization failed");
-            }
-        }
-    }
     resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
     updateActions();
 }
@@ -259,34 +191,21 @@ void MainWindow::updateActions()
     bool imageExist = false;
     bool canSnap = false;
 
+    bool enable = false;
     for (int i = 0; i < camNumber; ++i)
     {
-        bool enable = false;
         if (!currentQImage[i].isNull())
         {
             imageExist = true;
             enable = true;
             canSnap &= camera[i].canTakeSnapshoot();
-        }
-
-        switch(i)
-        {
-        case 0:
-            ui->actionLoad_Calibration_1->setEnabled(enable);
-            ui->actionCalibrate_1->setEnabled(enable);
-            ui->actionUndistort_1->setEnabled(enable);
-            break;
-        case 1:
-            ui->actionLoad_Calibration_2->setEnabled(enable);
-            ui->actionCalibrate_2->setEnabled(enable);
-            ui->actionUndistort_2->setEnabled(enable);
-            break;
-        default:
-            throw std::logic_error("There is no camera with index " + std::to_string(i));
-        }
+        }       
     }
 
     ui->actionSnapshot->setEnabled(canSnap);
+    ui->actionLoad_Calibration->setEnabled(enable);
+    ui->actionCalibrate->setEnabled(enable);
+    ui->actionUndistort->setEnabled(enable);
 
     if (imageExist)
     {        
@@ -298,12 +217,7 @@ void MainWindow::updateActions()
         ui->actionGray->setEnabled(true);
         ui->actionRed_channel->setEnabled(true);
         ui->actionGreen_channel->setEnabled(true);
-        ui->actionBlue_channel->setEnabled(true);
-
-        ui->action320_x_240->setEnabled(true);
-        ui->action640_x_480->setEnabled(true);
-        ui->action1024_x_768->setEnabled(true);
-        ui->action1280_x_1024->setEnabled(true);        
+        ui->actionBlue_channel->setEnabled(true);       
     }
     else
     {
@@ -315,12 +229,7 @@ void MainWindow::updateActions()
         ui->actionGray->setEnabled(false);
         ui->actionRed_channel->setEnabled(false);
         ui->actionGreen_channel->setEnabled(false);
-        ui->actionBlue_channel->setEnabled(false);
-
-        ui->action320_x_240->setEnabled(false);
-        ui->action640_x_480->setEnabled(false);
-        ui->action1024_x_768->setEnabled(false);
-        ui->action1280_x_1024->setEnabled(false);        
+        ui->actionBlue_channel->setEnabled(false);       
     }
 }
 
@@ -401,30 +310,6 @@ void MainWindow::closeEvent(QCloseEvent*)
 {
 }
 
-void MainWindow::on_actionCamera1_triggered(int id)
-{
-    for(auto a : ui->menuCamera1->actions())
-    {
-        a->setChecked(false);
-    }
-    QAction* action = static_cast<QAction*>(signalMapper[0]->mapping(id));
-    action->setChecked(true);
-
-    camera[0].startCapture(id);
-}
-
-void MainWindow::on_actionCamera2_triggered(int id)
-{
-    for(auto a : ui->menuCamera2->actions())
-    {
-        a->setChecked(false);
-    }
-    QAction* action = static_cast<QAction*>(signalMapper[1]->mapping(id));
-    action->setChecked(true);
-
-    camera[1].startCapture(id);
-}
-
 void MainWindow::setImage(const QImage &img, int imgIndex)
 {
     currentQImage[imgIndex] = img;
@@ -454,37 +339,6 @@ void MainWindow::setImage2(const QImage &img)
     ui->imageLabel2->update();
 }
 
-void MainWindow::on_action320_x_240_triggered()
-{
-    for (auto& cam : camera)
-    {
-        cam.setResolution(cv::Size(320,200));
-    }
-}
-
-void MainWindow::on_action640_x_480_triggered()
-{
-    for (auto& cam : camera)
-    {
-        cam.setResolution(cv::Size(640,480));
-    }
-}
-
-void MainWindow::on_action1024_x_768_triggered()
-{
-    for (auto& cam : camera)
-    {
-        cam.setResolution(cv::Size(1024,768));
-    }
-}
-
-void MainWindow::on_action1280_x_1024_triggered()
-{
-    for (auto& cam : camera)
-    {
-        cam.setResolution(cv::Size(1280,1024));
-    }
-}
 
 void MainWindow::on_actionSnapshot_triggered()
 {
@@ -531,7 +385,7 @@ void MainWindow::on_actionCalibrate_triggered()
             files.push_back(s.toStdString());
         }
 
-        CalibParams* calibParamsDlg = new CalibParams(this);
+        CalibParamsDialog* calibParamsDlg = new CalibParamsDialog(this);
 
         calibParamsDlg->exec();
 
@@ -552,21 +406,18 @@ void MainWindow::on_actionCalibrate_triggered()
     }
 }
 
-void MainWindow::on_actionUndistort_1_triggered()
-{
+void MainWindow::on_actionUndistort_triggered()
+{    
     frameProcessor[0].setApplyUndistort(!frameProcessor[0].isUndistortApplied());
-    ui->actionUndistort_1->setChecked(frameProcessor[0].isUndistortApplied());
-}
-
-void MainWindow::on_actionUndistort_2_triggered()
-{
     frameProcessor[1].setApplyUndistort(!frameProcessor[1].isUndistortApplied());
-    ui->actionUndistort_2->setChecked(frameProcessor[1].isUndistortApplied());
+    ui->actionUndistort->setChecked(frameProcessor[0].isUndistortApplied() &&
+                                    frameProcessor[1].isUndistortApplied());
 }
 
 
-void MainWindow::on_actionLoad_Calibration_1_triggered()
+void MainWindow::on_actionLoad_Calibration_triggered()
 {
+    /*
     QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
     if (!fileName.isNull())
     {
@@ -579,20 +430,13 @@ void MainWindow::on_actionLoad_Calibration_1_triggered()
             QMessageBox::warning(this, tr("Calibration"), tr("Load failed!"));
         }
     }
+    */
 }
 
-void MainWindow::on_actionLoad_Calibration_2_triggered()
+
+void MainWindow::on_actionCameraSetup_triggered()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
-    if (!fileName.isNull())
-    {
-        if (frameProcessor[1].loadCalibrationParams(fileName.toStdString()))
-        {
-            QMessageBox::information(this, tr("Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
-        }
-        else
-        {
-            QMessageBox::warning(this, tr("Calibration"), tr("Load failed!"));
-        }
-    }
+    CameraSetupDialog* camSetupDlg = new CameraSetupDialog(this);
+
+    camSetupDlg->exec();
 }

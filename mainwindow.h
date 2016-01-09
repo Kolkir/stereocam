@@ -53,19 +53,8 @@ private slots:
     void on_actionGreen_channel_triggered();
     void on_actionBlue_channel_triggered();
 
-    void on_actionCamera1_triggered(int id);
-    void on_actionCamera2_triggered(int id);
-
     void setImage1(const QImage & img);
     void setImage2(const QImage & img);
-
-    void on_action320_x_240_triggered();
-
-    void on_action640_x_480_triggered();
-
-    void on_action1024_x_768_triggered();
-
-    void on_action1280_x_1024_triggered();
 
     void on_actionSnapshot_triggered();
 
@@ -73,11 +62,11 @@ private slots:
 
     void on_actionCalibrate_triggered();
 
-    void on_actionUndistort_1_triggered();
-    void on_actionUndistort_2_triggered();
+    void on_actionUndistort_triggered();
 
-    void on_actionLoad_Calibration_1_triggered();
-    void on_actionLoad_Calibration_2_triggered();
+    void on_actionLoad_Calibration_triggered();
+
+    void on_actionCameraSetup_triggered();
 
 private:
 

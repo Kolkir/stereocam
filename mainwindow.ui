@@ -94,8 +94,6 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionWork_Directory"/>
-    <addaction name="actionCalibrate"/>
-    <addaction name="actionSnapshot"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -118,35 +116,20 @@
     <addaction name="actionGreen_channel"/>
     <addaction name="actionBlue_channel"/>
    </widget>
-   <widget class="QMenu" name="menuCamera1">
+   <widget class="QMenu" name="menuCamera">
     <property name="title">
-     <string>Camera1</string>
+     <string>Camera</string>
     </property>
-    <addaction name="actionLoad_Calibration_1"/>
-    <addaction name="actionUndistort_1"/>
-   </widget>
-   <widget class="QMenu" name="menuResolution">
-    <property name="title">
-     <string>Resolution</string>
-    </property>
-    <addaction name="action320_x_240"/>
-    <addaction name="action640_x_480"/>
-    <addaction name="action1024_x_768"/>
-    <addaction name="action1280_x_1024"/>
-   </widget>
-   <widget class="QMenu" name="menuCamera2">
-    <property name="title">
-     <string>Camera2</string>
-    </property>
-    <addaction name="actionLoad_Calibration_2"/>
-    <addaction name="actionUndistort_2"/>
+    <addaction name="actionCameraSetup"/>
+    <addaction name="actionCalibrate"/>
+    <addaction name="actionLoad_Calibration"/>
+    <addaction name="actionUndistort"/>
+    <addaction name="actionSnapshot"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuCamera1"/>
-   <addaction name="menuCamera2"/>
+   <addaction name="menuCamera"/>
    <addaction name="menuView"/>
    <addaction name="menuColor"/>
-   <addaction name="menuResolution"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -236,60 +219,17 @@
     <string>Alpha channel</string>
    </property>
   </action>
-  <action name="actionGradient">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Gradient</string>
-   </property>
-  </action>
-  <action name="action640_x_480">
-   <property name="text">
-    <string>640 x 480</string>
-   </property>
-  </action>
-  <action name="action1024_x_768">
-   <property name="text">
-    <string>1024 x 768</string>
-   </property>
-  </action>
-  <action name="action1280_x_1024">
-   <property name="text">
-    <string>1280 x 1024</string>
-   </property>
-  </action>
-  <action name="action320_x_240">
-   <property name="text">
-    <string>320 x 240</string>
-   </property>
-  </action>
   <action name="actionWork_Directory">
    <property name="text">
     <string>Work Directory ...</string>
    </property>
   </action>
-  <action name="actionLoad_Calibration_1">
+  <action name="actionLoad_Calibration">
    <property name="text">
     <string>Load Calibration ...</string>
    </property>
   </action>
-  <action name="actionLoad_Calibration_2">
-   <property name="text">
-    <string>Load Calibration ...</string>
-   </property>
-  </action>
-  <action name="actionCalibrate_1">
-   <property name="text">
-    <string>Calibrate ...</string>
-   </property>
-  </action>
-  <action name="actionCalibrate_2">
-   <property name="text">
-    <string>Calibrate ...</string>
-   </property>
-  </action>
-  <action name="actionUndistort_1">
+  <action name="actionUndistort">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -297,12 +237,9 @@
     <string>Undistort</string>
    </property>
   </action>
-  <action name="actionUndistort_2">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actionCameraSetup">
    <property name="text">
-    <string>Undistort</string>
+    <string>Setup ...</string>
    </property>
   </action>
   <action name="actionSnapshot">

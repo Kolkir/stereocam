@@ -105,8 +105,7 @@ std::vector<VideoDevFormat> getDeviceFormats(int id)
         {
             auto err = ioctl(dev.fd(), VIDIOC_ENUM_FMT, &fmtdesc);
             if  (err >= 0)
-            {
-                format.description = reinterpret_cast<char*>(fmtdesc.description);
+            {                                
                 format.pixelformat = fmtdesc.pixelformat;
                 //enumerate frame sizes
                 v4l2_frmsizeenum frmsize;
@@ -121,8 +120,13 @@ std::vector<VideoDevFormat> getDeviceFormats(int id)
                         {
                             format.width = frmsize.discrete.width;
                             format.height = frmsize.discrete.height;
+                            format.description = reinterpret_cast<char*>(fmtdesc.description);
                             format.description += " " + std::to_string(format.width) + "x" + std::to_string(format.height);
-                            formats.push_back(format);
+
+                            if (fmtdesc.pixelformat == V4L2_PIX_FMT_MJPEG)
+                            {
+                                formats.push_back(format);
+                            }
                         }
                     }
                     else

@@ -4,23 +4,23 @@
 #include <QDialog>
 
 namespace Ui {
-class CalibParams;
+class CalibParamsDialog;
 }
 
-class CalibParams : public QDialog
+class CalibParamsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit CalibParams(QWidget *parent = 0);
-    ~CalibParams();
+    explicit CalibParamsDialog(QWidget *parent = 0);
+    ~CalibParamsDialog();
 
     int getSquareSize() const;
     int getWCount() const;
     int getHCount() const;
 
 private:
-    Ui::CalibParams *ui;
+    Ui::CalibParamsDialog *ui;
 };
 
 #endif // CALIBPARAMS_H
