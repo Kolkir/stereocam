@@ -93,8 +93,6 @@ private:
     
     QLabel* scaleStatusLabel;
     QLabel* coordsStatusLabel;
-    QLabel* colorStatusLabel;
-    QLabel* resolutionStatusLabel;
 
     COLOR_TYPE colorViewType;    
 

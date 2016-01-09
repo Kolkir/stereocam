@@ -44,6 +44,12 @@ private:
     int fileDesc;
 };
 
+bool calibrate(int squareSize,
+                          int wcount,
+                          int hcount,
+                          const std::vector<std::string>& files,
+                          const std::string& fileName);
+
 }}
 
 #endif

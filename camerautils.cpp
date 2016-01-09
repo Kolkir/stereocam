@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <opencv2/opencv.hpp>
+
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -151,6 +153,71 @@ std::vector<VideoDevFormat> getDeviceFormats(int id)
     return formats;
 }
 
+bool calibrate(int squareSize,
+               int wcount,
+               int hcount,
+               const std::vector<std::string> &files,
+               const std::string &fileName)
+{
+    //generate Chessbard pattern
+    cv::Size boardSize(wcount, hcount);
+    std::vector<std::vector<cv::Point3f> > objectPoints(1);
+    for( int i = 0; i < boardSize.height; i++ )
+    {
+        for( int j = 0; j < boardSize.width; j++ )
+        {
+            objectPoints[0].push_back(cv::Point3f(float(j*squareSize), float(i*squareSize), 0));
+        }
+    }
+
+    //extract image points
+    cv::Size imageSize(-1, -1);
+    std::vector<std::vector<cv::Point2f>> imagePoints;
+    std::vector<cv::Point2f> pointbuf;
+    for (auto& ifn : files)
+    {
+        cv::Mat img = cv::imread(ifn, CV_LOAD_IMAGE_GRAYSCALE);
+
+        if (imageSize.width == -1)
+        {
+            imageSize = img.size();
+        }
+
+        pointbuf.clear();
+        bool found = cv::findChessboardCorners(img, boardSize, pointbuf, CV_CALIB_CB_ADAPTIVE_THRESH |
+                                                                         CV_CALIB_CB_FILTER_QUADS);
+        if(found)
+        {
+            cv::cornerSubPix(img, pointbuf, cv::Size(11,11),
+                        cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
+
+            imagePoints.push_back(pointbuf);
+        }
+    }
+
+    //set correspondance between image points and object
+    objectPoints.resize(imagePoints.size(),objectPoints[0]);
+
+    //calibrate
+    cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat distCoeffs = cv::Mat::zeros(8, 1, CV_64F);
+
+    std::vector<cv::Mat> rvecs, tvecs;
+
+    cv::calibrateCamera(objectPoints, imagePoints, imageSize, cameraMatrix,
+                        distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K4|CV_CALIB_FIX_K5);
+
+    bool ok = cv::checkRange(cameraMatrix) && cv::checkRange(distCoeffs);
+
+    if (ok)
+    {
+        cv::FileStorage storage(fileName, cv::FileStorage::WRITE);
+        storage << "cameraMatrix" << cameraMatrix;
+        storage << "distCoeffs" << distCoeffs;
+    }
+
+    return ok;
+}
 
 
 }}

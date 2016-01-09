@@ -1,6 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include "camerautils.h"
+
 #include <opencv2/opencv.hpp>
 
 #include <functional>
@@ -20,23 +22,11 @@ public:
 
     Camera& operator=(const Camera&) = delete;
 
-    static int getDeviceCount();
-
-    static bool calibrate(int squareSize,
-                          int wcount,
-                          int hcount,
-                          const std::vector<std::string>& files,
-                          const std::string& fileName);
-
     void setFrameCallback(std::function<void (cv::Mat&)> func);
 
-    bool startCapture(int cameraId);
+    bool startCapture(int cameraId, const camera::utils::VideoDevFormat& format);
 
     void stopCapture();
-
-    cv::Size getResolution() const;
-
-    void setResolution(const cv::Size& resolution);
 
     void takeSnapshoot(const std::string& fileName);
 
@@ -44,7 +34,7 @@ public:
 
 private:
 
-    void capturing(int cameraId);
+    void capturing(int cameraId, camera::utils::VideoDevFormat format);
 
 private:
 
@@ -54,12 +44,11 @@ private:
     bool stop;
     std::promise<bool> captureStarted;
 
-    cv::Size resolution;
-    cv::Size actualResolution;
-
     mutable std::mutex snapGuard;
     bool freeForSnap;
     std::string snapFileName;
+
+    std::string lastError;
 };
 
 #endif // CAMERA_H

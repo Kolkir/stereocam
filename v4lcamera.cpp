@@ -138,7 +138,8 @@ void V4LCamera::getFrame(std::vector<char> &buffer)
     memset(&bufferinfo, 0, sizeof(bufferinfo));
 
     bufferinfo.type = vide_type;
-    bufferinfo.index = 0;
+    bufferinfo.memory = V4L2_MEMORY_MMAP;
+    bufferinfo.index = 0;    
 
     // Put the buffer in the incoming queue.
     if(ioctl(device.fd(), VIDIOC_QBUF, &bufferinfo) < 0)
@@ -153,7 +154,7 @@ void V4LCamera::getFrame(std::vector<char> &buffer)
     }
 
     buffer.resize(this->buffer.length);
-    memcpy(buffer.data(), this->buffer.buffer, this->buffer.length);
+    memcpy(buffer.data(), this->buffer.buffer, this->buffer.length);    
 }
 
 

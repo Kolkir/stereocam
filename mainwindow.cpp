@@ -21,23 +21,33 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     scaleStatusLabel = new QLabel(this);
-    coordsStatusLabel = new QLabel(this);
-    colorStatusLabel = new QLabel(this);
-    resolutionStatusLabel = new QLabel(this);
+    coordsStatusLabel = new QLabel(this);   
 
     ui->statusbar->addWidget(scaleStatusLabel);
     ui->statusbar->addWidget(coordsStatusLabel);
-    ui->statusbar->addWidget(colorStatusLabel);
-    ui->statusbar->addWidget(resolutionStatusLabel);
 
     ui->imageLabel1->installEventFilter(this);
     ui->imageLabel1->setMouseTracking(true);
     ui->imageLabel2->installEventFilter(this);
-    ui->imageLabel2->setMouseTracking(true);
-
+    ui->imageLabel2->setMouseTracking(true);    
 
     resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
     updateActions();
+
+    //initialze camera connections
+    camera[0].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[0], std::placeholders::_1));
+    converter[0].setFrameProcessor(frameProcessor[0]);
+    connect(&converter[0], SIGNAL(imageReady(QImage)), this, SLOT(setImage1(QImage)));
+
+    camera[1].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[1], std::placeholders::_1));
+    converter[1].setFrameProcessor(frameProcessor[1]);
+    connect(&converter[1], SIGNAL(imageReady(QImage)), this, SLOT(setImage2(QImage)));
+
+    converterThread[0].start();
+    converter[0].moveToThread(&converterThread[0]);
+
+    converterThread[1].start();
+    converter[1].moveToThread(&converterThread[1]);
 }
 
 MainWindow::~MainWindow()
@@ -237,10 +247,6 @@ void MainWindow::updateStatusBar()
 {
     scaleStatusLabel->setText(QString("Scale : %1 ").arg(static_cast<int>(scaleFactor * 100)));
     coordsStatusLabel->setText(QString("Pos : %1, %2 ").arg(static_cast<int>(currentX / scaleFactor)).arg(static_cast<int>(currentY / scaleFactor)));
-
-    auto res1 = camera[0].getResolution();
-    auto res2 = camera[1].getResolution();
-    resolutionStatusLabel->setText(QString("Resolution : %1 x %2, %3 x %4").arg(res1.width).arg(res1.height).arg(res2.width).arg(res2.height));
 }
 
 void MainWindow::updateColorViewType(COLOR_TYPE type)
@@ -390,7 +396,7 @@ void MainWindow::on_actionCalibrate_triggered()
         calibParamsDlg->exec();
 
         const QString dataFileName = workingDir + utils::getTimestampFileName("/calib-data", "yml");
-        bool ok = Camera::calibrate(calibParamsDlg->getSquareSize(),
+        bool ok = camera::utils::calibrate(calibParamsDlg->getSquareSize(),
                                     calibParamsDlg->getWCount(),
                                     calibParamsDlg->getHCount(),
                                     files,
@@ -438,5 +444,21 @@ void MainWindow::on_actionCameraSetup_triggered()
 {
     CameraSetupDialog* camSetupDlg = new CameraSetupDialog(this);
 
-    camSetupDlg->exec();
+    auto ret = camSetupDlg->exec();
+
+    if (ret == QDialog::Accepted)
+    {
+        //stop
+        frameProcessor[0].stopProcessing();
+        frameProcessor[1].stopProcessing();
+        camera[0].stopCapture();
+        camera[1].stopCapture();
+
+        //start
+        camera[0].startCapture(camSetupDlg->getLeftDeviceId(), camSetupDlg->getDeviceFormat());
+        frameProcessor[0].startProcessing();
+
+        camera[1].startCapture(camSetupDlg->getRightDeviceId(), camSetupDlg->getDeviceFormat());
+        frameProcessor[1].startProcessing();
+    }
 }
