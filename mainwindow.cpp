@@ -48,6 +48,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     converterThread[1].start();
     converter[1].moveToThread(&converterThread[1]);
+
+    ui->actionCameraView->setChecked(true);
 }
 
 MainWindow::~MainWindow()
@@ -200,6 +202,7 @@ void MainWindow::updateActions()
 {
     bool imageExist = false;
     int canSnap = 0;
+    int realCamNum = 0;
 
     bool enable = false;
     for (int i = 0; i < camNumber; ++i)
@@ -209,6 +212,7 @@ void MainWindow::updateActions()
             imageExist = true;
             enable = true;
             canSnap += camera[i].canTakeSnapshoot() ? 1 : 0;
+            ++realCamNum;
         }       
     }
 
@@ -217,8 +221,11 @@ void MainWindow::updateActions()
     ui->actionCalibrate->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
 
+    ui->actionDepth3DView->setEnabled(realCamNum > 1);
+
     if (imageExist)
     {        
+        ui->actionCameraView->setEnabled(true);
         ui->actionZoom_In->setEnabled(true);
         ui->actionZoom_Out->setEnabled(true);
         ui->action100->setEnabled(true);
@@ -231,6 +238,7 @@ void MainWindow::updateActions()
     }
     else
     {
+        ui->actionCameraView->setEnabled(false);
         ui->actionZoom_In->setEnabled(false);
         ui->actionZoom_Out->setEnabled(false);
         ui->action100->setEnabled(false);
@@ -480,4 +488,22 @@ void MainWindow::on_actionCameraSetup_triggered()
         camera[1].startCapture(camSetupDlg->getRightDeviceId(), camSetupDlg->getDeviceFormat());
         frameProcessor[1].startProcessing();
     }
+}
+
+void MainWindow::on_actionCameraView_triggered()
+{
+    if(ui->actionDepth3DView->isChecked())
+    {
+        ui->actionDepth3DView->setChecked(false);
+    }
+    ui->actionCameraView->setChecked(true);
+}
+
+void MainWindow::on_actionDepth3DView_triggered()
+{
+    if(ui->actionCameraView->isChecked())
+    {
+        ui->actionCameraView->setChecked(false);
+    }
+    ui->actionDepth3DView->setChecked(true);
 }

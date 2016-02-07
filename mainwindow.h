@@ -68,6 +68,10 @@ private slots:
 
     void on_actionCameraSetup_triggered();
 
+    void on_actionCameraView_triggered();
+
+    void on_actionDepth3DView_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);

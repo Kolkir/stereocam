@@ -126,7 +126,16 @@
     <addaction name="actionUndistort"/>
     <addaction name="actionSnapshot"/>
    </widget>
+   <widget class="QMenu" name="menuView_2">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="separator"/>
+    <addaction name="actionCameraView"/>
+    <addaction name="actionDepth3DView"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView_2"/>
    <addaction name="menuCamera"/>
    <addaction name="menuView"/>
    <addaction name="menuColor"/>
@@ -253,6 +262,22 @@
   <action name="actionCalibrate">
    <property name="text">
     <string>Calibrate ...</string>
+   </property>
+  </action>
+  <action name="actionCameraView">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Camera</string>
+   </property>
+  </action>
+  <action name="actionDepth3DView">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Depth 3D</string>
    </property>
   </action>
  </widget>
