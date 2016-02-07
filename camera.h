@@ -32,6 +32,8 @@ public:
 
     bool canTakeSnapshoot() const;
 
+    int getId() const;
+
 private:
 
     void capturing(int cameraId, camera::utils::VideoDevFormat format);
@@ -49,6 +51,7 @@ private:
     std::string snapFileName;
 
     std::string lastError;
+    int cameraId;
 };
 
 #endif // CAMERA_H

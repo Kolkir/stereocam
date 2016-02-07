@@ -75,8 +75,15 @@ void Camera::capturing(int cameraId, camera::utils::VideoDevFormat format)
     }
 }
 
+int Camera::getId() const
+{
+    return cameraId;
+}
+
 bool Camera::startCapture(int cameraId, const camera::utils::VideoDevFormat& format)
 {
+    this->cameraId = cameraId;
+
     stopCapture();
 
     stop = false;

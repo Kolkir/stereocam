@@ -423,20 +423,39 @@ void MainWindow::on_actionUndistort_triggered()
 
 void MainWindow::on_actionLoad_Calibration_triggered()
 {
-    /*
-    QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
-    if (!fileName.isNull())
+    QStringList items;
+    auto devList = camera::utils::getDeviceList();
+
+    for (auto& dev : devList)
     {
-        if (frameProcessor[0].loadCalibrationParams(fileName.toStdString()))
+        if (dev.id == camera[0].getId() ||
+            dev.id == camera[1].getId())
         {
-            QMessageBox::information(this, tr("Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
-        }
-        else
-        {
-            QMessageBox::warning(this, tr("Calibration"), tr("Load failed!"));
+            QString camName = QString("%1 : %2").arg(dev.id).arg(QString::fromStdString(dev.name));
+            items.append(camName);
         }
     }
-    */
+    QString res = QInputDialog::getItem(this, "Choose camera for applying calibration", "Camera :", items);
+    if (!res.isEmpty())
+    {
+        QStringList slist = res.split(':');
+        auto itemId = slist.at(0).toInt();
+
+        auto devId = camera[0].getId() == itemId ? 0 : 1;
+
+        QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
+        if (!fileName.isNull())
+        {
+            if (frameProcessor[devId].loadCalibrationParams(fileName.toStdString()))
+            {
+                QMessageBox::information(this, tr("Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
+            }
+            else
+            {
+                QMessageBox::warning(this, tr("Calibration"), tr("Load failed!"));
+            }
+        }
+    }
 }
 
 
