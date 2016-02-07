@@ -199,7 +199,7 @@ void MainWindow::on_actionZoom_Out_triggered()
 void MainWindow::updateActions()
 {
     bool imageExist = false;
-    bool canSnap = false;
+    int canSnap = 0;
 
     bool enable = false;
     for (int i = 0; i < camNumber; ++i)
@@ -208,11 +208,11 @@ void MainWindow::updateActions()
         {
             imageExist = true;
             enable = true;
-            canSnap &= camera[i].canTakeSnapshoot();
+            canSnap += camera[i].canTakeSnapshoot() ? 1 : 0;
         }       
     }
 
-    ui->actionSnapshot->setEnabled(canSnap);
+    ui->actionSnapshot->setEnabled(canSnap > 0);
     ui->actionLoad_Calibration->setEnabled(enable);
     ui->actionCalibrate->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);

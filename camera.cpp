@@ -6,6 +6,7 @@
 
 Camera::Camera()
     : stop(false)
+    , freeForSnap(true)
 {
 }
 
