@@ -92,13 +92,30 @@ void FrameProcessor::processing()
                 {
                     color = cv::Scalar(255);
                 }
+                int offset = 50;
+                //vertical
                 cv::Point vstart(tmp.cols/2,0);
                 cv::Point vend(tmp.cols/2,tmp.rows-1);
                 cv::line(tmp, vstart, vend, color, 1);
 
+                for (int li = -offset; li <= offset; li+=10)
+                {
+                    cv::Point hstart2(tmp.cols/2-li, tmp.rows/2-abs(li));
+                    cv::Point hend2(tmp.cols/2-li,tmp.rows/2+abs(li));
+                    cv::line(tmp, hstart2, hend2, color, 1);
+                }
+
+                //horisontal
                 cv::Point hstart(0, tmp.rows/2);
                 cv::Point hend(tmp.cols-1,tmp.rows/2);
-                cv::line(tmp, hstart, hend, color, 1);
+                cv::line(tmp, hstart, hend, color, 1);                
+
+                for (int li = -offset; li <= offset; li+=10)
+                {
+                    cv::Point hstart2(tmp.cols/2-abs(li), tmp.rows/2-li);
+                    cv::Point hend2(tmp.cols/2+abs(li),tmp.rows/2-li);
+                    cv::line(tmp, hstart2, hend2, color, 1);
+                }
             }
             {
                 std::unique_lock<std::mutex> lock(outGuard);
