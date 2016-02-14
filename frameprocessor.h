@@ -1,6 +1,8 @@
 #ifndef FRAMEPROCESSOR_H
 #define FRAMEPROCESSOR_H
 
+#include "framesource.h"
+
 #include <opencv2/opencv.hpp>
 
 #include <memory>
@@ -8,7 +10,7 @@
 #include <thread>
 #include <future>
 
-class FrameProcessor
+class FrameProcessor : public FrameSource
 {
 public:
     FrameProcessor();
@@ -21,7 +23,7 @@ public:
 
     void setFrame(const cv::Mat frame);
 
-    void getFrame(cv::Mat& frame);
+    void getFrame(cv::Mat& frame) override;
 
     void startProcessing();
 

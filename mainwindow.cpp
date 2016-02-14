@@ -29,19 +29,25 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->imageLabel1->installEventFilter(this);
     ui->imageLabel1->setMouseTracking(true);
     ui->imageLabel2->installEventFilter(this);
-    ui->imageLabel2->setMouseTracking(true);    
+    ui->imageLabel2->setMouseTracking(true);
+    ui->depthMapLabel->installEventFilter(this);
 
     resize(QGuiApplication::primaryScreen()->availableSize() * 3 / 5);
     updateActions();
 
     //initialze camera connections
     camera[0].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[0], std::placeholders::_1));
-    converter[0].setFrameProcessor(frameProcessor[0]);
+    converter[0].setFrameSource(frameProcessor[0]);
     connect(&converter[0], SIGNAL(imageReady(QImage)), this, SLOT(setImage1(QImage)));
 
     camera[1].setFrameCallback(std::bind(&FrameProcessor::setFrame, &frameProcessor[1], std::placeholders::_1));
-    converter[1].setFrameProcessor(frameProcessor[1]);
+    converter[1].setFrameSource(frameProcessor[1]);
     connect(&converter[1], SIGNAL(imageReady(QImage)), this, SLOT(setImage2(QImage)));
+
+    depthMapBuilder.setLeftSource(frameProcessor[0]);
+    depthMapBuilder.setRightSource(frameProcessor[1]);
+    converter[2].setFrameSource(depthMapBuilder);
+    connect(&converter[2], SIGNAL(imageReady(QImage)), this, SLOT(setDepthImage(QImage)));
 
     converterThread[0].start();
     converter[0].moveToThread(&converterThread[0]);
@@ -49,12 +55,16 @@ MainWindow::MainWindow(QWidget *parent) :
     converterThread[1].start();
     converter[1].moveToThread(&converterThread[1]);
 
+    converterThread[2].start();
+    converter[2].moveToThread(&converterThread[2]);
+
     ui->actionCameraView->setChecked(true);
+    ui->viewStackedWidget->setCurrentIndex(0);
 }
 
 MainWindow::~MainWindow()
 {
-    for(int i = 0; i < camNumber; ++i)
+    for(int i = 0; i < camNumber + 1; ++i)
     {
         converter[i].stop();
         converterThread[i].quit();
@@ -65,6 +75,29 @@ MainWindow::~MainWindow()
 
 bool MainWindow::eventFilter(QObject *target, QEvent *event)
 {
+    auto imagePaint = [&](QLabel* imageLabel, QImage& img) -> bool
+    {
+        if (imageLabel != nullptr)
+        {
+            QPaintEvent* paintEvent = dynamic_cast<QPaintEvent*>(event);
+            if (paintEvent != nullptr && !img.isNull())
+            {
+                QPainter painter(imageLabel);
+
+                if (ui->scrollArea->widgetResizable())
+                {
+                    painter.drawImage(0,0, img.scaled(paintEvent->rect().size()));
+                }
+                else
+                {
+                    painter.drawImage(paintEvent->rect(), img, paintEvent->rect());
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
     if ((target == ui->imageLabel1 || target == ui->imageLabel2)
          && event->type() == QEvent::MouseMove)
     {
@@ -81,31 +114,12 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event)
     else if ((target == ui->imageLabel1 || target == ui->imageLabel2)
              && event->type() == QEvent::Paint)
     {
-        auto imagePaint = [&](QLabel* imageLabel, int cam) -> bool
-        {
-            if (imageLabel != nullptr)
-            {
-                QPaintEvent* paintEvent = dynamic_cast<QPaintEvent*>(event);
-                if (paintEvent != nullptr && !currentQImage[cam].isNull())
-                {
-                    QPainter painter(imageLabel);
-
-                    if (ui->scrollArea->widgetResizable())
-                    {
-                        painter.drawImage(0,0, currentQImage[cam].scaled(paintEvent->rect().size()));
-                    }
-                    else
-                    {
-                        painter.drawImage(paintEvent->rect(), currentQImage[cam], paintEvent->rect());
-                    }
-                    return true;
-                }
-            }
-            return false;
-        };
-
         int cam = target == ui->imageLabel1 ? 0 : 1;
-        return imagePaint(dynamic_cast<QLabel*>(target), cam);
+        return imagePaint(dynamic_cast<QLabel*>(target), currentQImage[cam]);
+    }
+    else if (target == ui->depthMapLabel && event->type() == QEvent::Paint)
+    {
+       return imagePaint(dynamic_cast<QLabel*>(target), depthQImage);
     }
     return QMainWindow::eventFilter(target, event);
 }
@@ -221,7 +235,7 @@ void MainWindow::updateActions()
     ui->actionCalibrate->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
 
-    ui->actionDepth3DView->setEnabled(realCamNum > 1);
+    ui->actionDepthMapView->setEnabled(true);//realCamNum > 1);
 
     if (imageExist)
     {        
@@ -353,6 +367,19 @@ void MainWindow::setImage2(const QImage &img)
     ui->imageLabel2->update();
 }
 
+void MainWindow::setDepthImage(const QImage &img)
+{
+    currentSize = img.size();
+
+    depthQImage = img;
+
+    ui->scrollArea->widget()->resize(currentSize);
+
+    update();
+    updateActions();
+
+    ui->depthMapLabel->update();
+}
 
 void MainWindow::on_actionSnapshot_triggered()
 {
@@ -476,6 +503,8 @@ void MainWindow::on_actionCameraSetup_triggered()
     if (ret == QDialog::Accepted)
     {
         //stop
+        depthMapBuilder.stopProcessing();
+
         frameProcessor[0].stopProcessing();
         frameProcessor[1].stopProcessing();
         camera[0].stopCapture();
@@ -486,24 +515,41 @@ void MainWindow::on_actionCameraSetup_triggered()
         frameProcessor[0].startProcessing();
 
         camera[1].startCapture(camSetupDlg->getRightDeviceId(), camSetupDlg->getDeviceFormat());
-        frameProcessor[1].startProcessing();
+        frameProcessor[1].startProcessing();       
     }
 }
 
 void MainWindow::on_actionCameraView_triggered()
 {
-    if(ui->actionDepth3DView->isChecked())
+    if(ui->actionDepthMapView->isChecked())
     {
-        ui->actionDepth3DView->setChecked(false);
+        ui->actionDepthMapView->setChecked(false);
     }
     ui->actionCameraView->setChecked(true);
+
+    this->converter[0].pause(false);
+    this->converter[1].pause(false);
+    this->converter[2].pause(true);
+
+    ui->viewStackedWidget->setCurrentIndex(0);
+
+    depthMapBuilder.stopProcessing();
 }
 
-void MainWindow::on_actionDepth3DView_triggered()
+void MainWindow::on_actionDepthMapView_triggered()
 {
     if(ui->actionCameraView->isChecked())
     {
         ui->actionCameraView->setChecked(false);
     }
-    ui->actionDepth3DView->setChecked(true);
+    ui->actionDepthMapView->setChecked(true);
+
+    this->converter[0].pause(true);
+    this->converter[1].pause(true);
+    this->converter[2].pause(false);
+
+
+    ui->viewStackedWidget->setCurrentIndex(1);
+
+    depthMapBuilder.startProcessing();
 }

@@ -1,7 +1,7 @@
 #ifndef QFRAMECONVERTER_H
 #define QFRAMECONVERTER_H
 
-#include "frameprocessor.h"
+#include "framesource.h"
 
 #include <QObject>
 #include <qbasictimer.h>
@@ -13,7 +13,7 @@ class QFrameConverter : public QObject
     Q_OBJECT
 public:
     explicit QFrameConverter(QObject *parent = 0);
-    explicit QFrameConverter(FrameProcessor& frameProcessor, QObject *parent = 0);
+    explicit QFrameConverter(FrameSource& frameSOurce, QObject *parent = 0);
 
     void timerEvent(QTimerEvent * ev) override;
 
@@ -21,13 +21,16 @@ public:
 
     void stop();
 
-    void setFrameProcessor(FrameProcessor& frameProcessor);
+    void pause(bool val);
+
+    void setFrameSource(FrameSource& frameSource);
 
 private:
-    FrameProcessor* frameProcessor;
+    FrameSource* frameSource;
     QBasicTimer timer;
     cv::Mat frame;
     bool stopTimer;
+    bool pauseProcessing;
 };
 
 #endif // QFRAMECONVERTER_H

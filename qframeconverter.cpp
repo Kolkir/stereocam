@@ -11,12 +11,17 @@ QFrameConverter::QFrameConverter(QObject *parent)
 
 }
 
-QFrameConverter::QFrameConverter(FrameProcessor& frameProcessor, QObject *parent)
+QFrameConverter::QFrameConverter(FrameSource& frameSource, QObject *parent)
     : QObject(parent)
-    , frameProcessor(&frameProcessor)
+    , frameSource(&frameSource)
     , stopTimer(false)
 {
     timer.start(0, this);
+}
+
+void QFrameConverter::pause(bool val)
+{
+    pauseProcessing = val;
 }
 
 void QFrameConverter::timerEvent(QTimerEvent * ev)
@@ -27,28 +32,31 @@ void QFrameConverter::timerEvent(QTimerEvent * ev)
     }
     else
     {
-        frameProcessor->getFrame(frame);
-
-        if (!frame.empty())
+        if (!pauseProcessing)
         {
-            QImage::Format format(QImage::Format_RGB888);
-            switch (frame.channels())
+            frameSource->getFrame(frame);
+
+            if (!frame.empty())
             {
-            case 1:
-                format = QImage::Format_Grayscale8;
-                break;
-            case 3:
-                format = QImage::Format_RGB888;
-                break;
-            default:
-                Q_ASSERT(false);
+                QImage::Format format(QImage::Format_RGB888);
+                switch (frame.channels())
+                {
+                case 1:
+                    format = QImage::Format_Grayscale8;
+                    break;
+                case 3:
+                    format = QImage::Format_RGB888;
+                    break;
+                default:
+                    Q_ASSERT(false);
+                }
+
+                const QImage image(frame.data, frame.cols, frame.rows, static_cast<int>(frame.step), format);
+
+                Q_ASSERT(image.constBits() == frame.data);
+
+                emit imageReady(image);
             }
-
-            const QImage image(frame.data, frame.cols, frame.rows, static_cast<int>(frame.step), format);
-
-            Q_ASSERT(image.constBits() == frame.data);
-
-            emit imageReady(image);
         }
     }
 
@@ -67,9 +75,9 @@ void QFrameConverter::stop()
     stopTimer = true;
 }
 
-void QFrameConverter::setFrameProcessor(FrameProcessor &frameProcessor)
+void QFrameConverter::setFrameSource(FrameSource &frameSource)
 {
-    this->frameProcessor = &frameProcessor;
+    this->frameSource = &frameSource;
     timer.start(0, this);
 }
 

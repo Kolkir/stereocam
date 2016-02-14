@@ -10,6 +10,7 @@
 
 #include "camera.h"
 #include "frameprocessor.h"
+#include "depthmapbuilder.h"
 #include "qframeconverter.h"
 
 #include <opencv2/opencv.hpp>
@@ -55,6 +56,7 @@ private slots:
 
     void setImage1(const QImage & img);
     void setImage2(const QImage & img);
+    void setDepthImage(const QImage & img);
 
     void on_actionSnapshot_triggered();
 
@@ -70,7 +72,7 @@ private slots:
 
     void on_actionCameraView_triggered();
 
-    void on_actionDepth3DView_triggered();
+    void on_actionDepthMapView_triggered();
 
 private:
 
@@ -87,6 +89,7 @@ private:
 private:
 
     QImage currentQImage[camNumber]; //for paint event
+    QImage depthQImage;
     QSize currentSize;
 
     Ui::MainWindow *ui;
@@ -104,12 +107,12 @@ private:
     Camera camera[camNumber];
     int currentCamera[camNumber];
 
-    QSignalMapper* signalMapper[camNumber];
-
-    QThread converterThread[camNumber];
-    QFrameConverter converter[camNumber];
+    QThread converterThread[camNumber + 1];
+    QFrameConverter converter[camNumber + 1];
 
     QString workingDir;
+
+    DepthMapBuilder depthMapBuilder;
 };
 
 #endif // MAINWINDOW_H
