@@ -153,6 +153,39 @@ std::vector<VideoDevFormat> getDeviceFormats(int id)
     return formats;
 }
 
+namespace
+{
+    void getImagePoints(const cv::Size& boardSize,
+                        const std::vector<std::string> &files,
+                        std::vector<std::vector<cv::Point2f>>& imagePoints,
+                        cv::Size& imageSize)
+    {
+        imagePoints.clear();
+        std::vector<cv::Point2f> pointbuf;
+        for (auto& ifn : files)
+        {
+            cv::Mat img = cv::imread(ifn, CV_LOAD_IMAGE_GRAYSCALE);
+
+            if (imageSize.width == -1)
+            {
+                imageSize = img.size();
+            }
+
+            pointbuf.clear();
+            bool found = cv::findChessboardCorners(img, boardSize, pointbuf, CV_CALIB_CB_ADAPTIVE_THRESH |
+                                                                             CV_CALIB_CB_FILTER_QUADS);
+            if(found)
+            {
+                cv::cornerSubPix(img, pointbuf, cv::Size(11,11),
+                            cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
+
+                imagePoints.push_back(pointbuf);
+            }
+        }
+    }
+}
+
+
 bool calibrate(int squareSize,
                int wcount,
                int hcount,
@@ -171,29 +204,9 @@ bool calibrate(int squareSize,
     }
 
     //extract image points
-    cv::Size imageSize(-1, -1);
+    cv::Size imageSize;
     std::vector<std::vector<cv::Point2f>> imagePoints;
-    std::vector<cv::Point2f> pointbuf;
-    for (auto& ifn : files)
-    {
-        cv::Mat img = cv::imread(ifn, CV_LOAD_IMAGE_GRAYSCALE);
-
-        if (imageSize.width == -1)
-        {
-            imageSize = img.size();
-        }
-
-        pointbuf.clear();
-        bool found = cv::findChessboardCorners(img, boardSize, pointbuf, CV_CALIB_CB_ADAPTIVE_THRESH |
-                                                                         CV_CALIB_CB_FILTER_QUADS);
-        if(found)
-        {
-            cv::cornerSubPix(img, pointbuf, cv::Size(11,11),
-                        cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
-
-            imagePoints.push_back(pointbuf);
-        }
-    }
+    getImagePoints(boardSize, files, imagePoints, imageSize);
 
     //set correspondance between image points and object
     objectPoints.resize(imagePoints.size(),objectPoints[0]);
@@ -214,6 +227,66 @@ bool calibrate(int squareSize,
         cv::FileStorage storage(fileName, cv::FileStorage::WRITE);
         storage << "cameraMatrix" << cameraMatrix;
         storage << "distCoeffs" << distCoeffs;
+    }
+
+    return ok;
+}
+
+bool stereoCalibrate(int squareSize,
+                     int wcount,
+                     int hcount,
+                     const std::vector<std::string> &filesLeft,
+                     const std::vector<std::string> &filesRight,
+                     const std::string &fileName)
+{
+    //generate Chessbard pattern
+    cv::Size boardSize(wcount, hcount);
+    std::vector<std::vector<cv::Point3f> > objectPoints(1);
+    for( int i = 0; i < boardSize.height; i++ )
+    {
+        for( int j = 0; j < boardSize.width; j++ )
+        {
+            objectPoints[0].push_back(cv::Point3f(float(j*squareSize), float(i*squareSize), 0));
+        }
+    }
+
+    //extract image points
+    cv::Size imageSize;
+
+    std::vector<std::vector<cv::Point2f>> imagePointsLeft;
+    getImagePoints(boardSize, filesLeft, imagePointsLeft, imageSize);
+
+    std::vector<std::vector<cv::Point2f>> imagePointsRight;
+    getImagePoints(boardSize, filesRight, imagePointsRight, imageSize);
+
+    //set correspondance between image points and object
+    objectPoints.resize(imagePointsLeft.size(),objectPoints[0]);
+
+    //calibrate
+    cv::Mat cameraMatrixLeft = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat cameraMatrixRight = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat distCoeffsLeft, distCoeffsRight;
+    cv::Mat R, T, E, F;
+
+    cv::stereoCalibrate(objectPoints, imagePointsLeft, imagePointsRight,
+                        cameraMatrixLeft, distCoeffsLeft, cameraMatrixRight, distCoeffsRight, imageSize, R, T, E, F,
+                        cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 100, 1e-5),
+                        CV_CALIB_SAME_FOCAL_LENGTH | CV_CALIB_ZERO_TANGENT_DIST);
+
+    bool ok = cv::checkRange(cameraMatrixLeft) && cv::checkRange(distCoeffsLeft) &&
+              cv::checkRange(cameraMatrixRight) && cv::checkRange(distCoeffsRight);
+
+    if (ok)
+    {
+        cv::FileStorage storage(fileName, cv::FileStorage::WRITE);
+        storage << "CMLeft" << cameraMatrixLeft;
+        storage << "DLeft" << distCoeffsLeft;
+        storage << "CMRight" << cameraMatrixRight;
+        storage << "DRight" << distCoeffsRight;
+        storage << "R" << R;
+        storage << "T" << T;
+        storage << "E" << E;
+        storage << "F" << F;
     }
 
     return ok;

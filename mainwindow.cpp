@@ -233,6 +233,7 @@ void MainWindow::updateActions()
     ui->actionSnapshot->setEnabled(canSnap > 0);
     ui->actionLoad_Calibration->setEnabled(enable);
     ui->actionCalibrate->setEnabled(enable);
+    ui->actionSetere_Calibrate->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
 
     ui->actionDepthMapView->setEnabled(true);//realCamNum > 1);
@@ -552,4 +553,9 @@ void MainWindow::on_actionDepthMapView_triggered()
     ui->viewStackedWidget->setCurrentIndex(1);
 
     depthMapBuilder.startProcessing();
+}
+
+void MainWindow::on_actionSetere_Calibrate_triggered()
+{
+
 }

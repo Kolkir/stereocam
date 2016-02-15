@@ -1,10 +1,11 @@
 #include "depthmapbuilder.h"
 
 DepthMapBuilder::DepthMapBuilder()
-    : leftSource(nullptr)
+    : sgbm(0, 16, 3)
+    , leftSource(nullptr)
     , rightSource(nullptr)
 {
-    sgbm.SADWindowSize = 5;
+   /*sgbm.SADWindowSize = 5;
     sgbm.numberOfDisparities = 192;
     sgbm.preFilterCap = 4;
     sgbm.minDisparity = -64;
@@ -14,7 +15,16 @@ DepthMapBuilder::DepthMapBuilder()
     sgbm.disp12MaxDiff = 10;
     sgbm.fullDP = false;
     sgbm.P1 = 600;
-    sgbm.P2 = 2400;
+    sgbm.P2 = 2400;*/
+
+
+    sgbm.minDisparity = 0;
+    sgbm.uniquenessRatio = 10;
+    sgbm.speckleWindowSize = 100;
+    sgbm.speckleRange = 32;
+    sgbm.disp12MaxDiff = 1;
+    sgbm.preFilterCap = 63;
+    sgbm.fullDP = true;
 }
 
 DepthMapBuilder::~DepthMapBuilder()
@@ -91,6 +101,17 @@ void DepthMapBuilder::processing()
             {
                 cv::cvtColor(rightImg, rightImg, CV_BGR2GRAY);
             }
+
+            int numberOfDisparities = ((leftImg.cols/8) + 15) & -16;
+            sgbm.numberOfDisparities = numberOfDisparities;
+
+            int cn = leftImg.channels();
+
+            int sgbmWinSize = 3;
+
+            sgbm.P1 = (8*cn*sgbmWinSize*sgbmWinSize);
+            sgbm.P2 = (32*cn*sgbmWinSize*sgbmWinSize);
+
             sgbm(leftImg, rightImg, tmpMap);
             normalize(tmpMap, tmpMap, 0, 255, CV_MINMAX, CV_8U);
 

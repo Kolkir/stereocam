@@ -74,6 +74,8 @@ private slots:
 
     void on_actionDepthMapView_triggered();
 
+    void on_actionSetere_Calibrate_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);

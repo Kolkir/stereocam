@@ -45,11 +45,17 @@ private:
 };
 
 bool calibrate(int squareSize,
-                          int wcount,
-                          int hcount,
-                          const std::vector<std::string>& files,
-                          const std::string& fileName);
+               int wcount,
+               int hcount,
+               const std::vector<std::string>& files,
+               const std::string& fileName);
 
+bool stereoCalibrate(int squareSize,
+                     int wcount,
+                     int hcount,
+                     const std::vector<std::string>& filesLeft,
+                     const std::vector<std::string>& filesRight,
+                     const std::string& fileName);
 }}
 
 #endif
