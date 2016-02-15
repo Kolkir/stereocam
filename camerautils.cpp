@@ -160,6 +160,7 @@ namespace
                         std::vector<std::vector<cv::Point2f>>& imagePoints,
                         cv::Size& imageSize)
     {
+        imageSize = cv::Size(-1,-1);
         imagePoints.clear();
         std::vector<cv::Point2f> pointbuf;
         for (auto& ifn : files)

@@ -74,7 +74,7 @@ private slots:
 
     void on_actionDepthMapView_triggered();
 
-    void on_actionSetere_Calibrate_triggered();
+    void on_actionStereo_Calibrate_triggered();
 
 private:
 

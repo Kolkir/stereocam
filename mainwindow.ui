@@ -148,7 +148,7 @@
     </property>
     <addaction name="actionCameraSetup"/>
     <addaction name="actionCalibrate"/>
-    <addaction name="actionSetere_Calibrate"/>
+    <addaction name="actionStereo_Calibrate"/>
     <addaction name="actionLoad_Calibration"/>
     <addaction name="actionUndistort"/>
     <addaction name="actionSnapshot"/>
@@ -307,9 +307,12 @@
     <string>Depth Map</string>
    </property>
   </action>
-  <action name="actionSetere_Calibrate">
+  <action name="actionStereo_Calibrate">
    <property name="text">
-    <string>Setere Calibrate ...</string>
+    <string>Stereo Calibrate ...</string>
+   </property>
+   <property name="toolTip">
+    <string>Stereo Calibrate</string>
    </property>
   </action>
  </widget>

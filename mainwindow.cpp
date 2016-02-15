@@ -232,8 +232,6 @@ void MainWindow::updateActions()
 
     ui->actionSnapshot->setEnabled(canSnap > 0);
     ui->actionLoad_Calibration->setEnabled(enable);
-    ui->actionCalibrate->setEnabled(enable);
-    ui->actionSetere_Calibrate->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
 
     ui->actionDepthMapView->setEnabled(true);//realCamNum > 1);
@@ -555,7 +553,48 @@ void MainWindow::on_actionDepthMapView_triggered()
     depthMapBuilder.startProcessing();
 }
 
-void MainWindow::on_actionSetere_Calibrate_triggered()
+void MainWindow::on_actionStereo_Calibrate_triggered()
 {
+    QStringList fileNamesLeft = QFileDialog::getOpenFileNames(this, tr("Select images from left camera"), workingDir);
+    QStringList fileNamesRight = QFileDialog::getOpenFileNames(this, tr("Select images from right camera"), workingDir);
 
+    if (!fileNamesLeft.empty() &&
+        !fileNamesRight.empty())
+    {
+        std::vector<std::string> filesLeft;
+        filesLeft.reserve(fileNamesLeft.size());
+
+        for(auto& s : fileNamesLeft)
+        {
+            filesLeft.push_back(s.toStdString());
+        }
+
+        std::vector<std::string> filesRight;
+        filesRight.reserve(fileNamesRight.size());
+
+        for(auto& s : fileNamesRight)
+        {
+            filesRight.push_back(s.toStdString());
+        }
+
+        CalibParamsDialog* calibParamsDlg = new CalibParamsDialog(this);
+
+        calibParamsDlg->exec();
+
+        const QString dataFileName = workingDir + utils::getTimestampFileName("/stereo-calib-data", "yml");
+        bool ok = camera::utils::stereoCalibrate(calibParamsDlg->getSquareSize(),
+                                    calibParamsDlg->getWCount(),
+                                    calibParamsDlg->getHCount(),
+                                    filesLeft,
+                                    filesRight,
+                                    dataFileName.toStdString());
+        if (ok)
+        {
+            QMessageBox::information(this, tr("Stereo Calibration"), tr("Finished succesfully!"), QMessageBox::Ok);
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("Stereo Calibration"), tr("Failed!"));
+        }
+    }
 }
