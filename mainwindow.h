@@ -76,6 +76,8 @@ private slots:
 
     void on_actionStereo_Calibrate_triggered();
 
+    void on_actionLoad_Stereo_Calibration_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);

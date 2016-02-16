@@ -233,8 +233,9 @@ void MainWindow::updateActions()
     ui->actionSnapshot->setEnabled(canSnap > 0);
     ui->actionLoad_Calibration->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
+    ui->actionLoad_Stereo_Calibration->setEnabled(enable);
 
-    ui->actionDepthMapView->setEnabled(true);//realCamNum > 1);
+    ui->actionDepthMapView->setEnabled(realCamNum > 1);
 
     if (imageExist)
     {        
@@ -595,6 +596,22 @@ void MainWindow::on_actionStereo_Calibrate_triggered()
         else
         {
             QMessageBox::warning(this, tr("Stereo Calibration"), tr("Failed!"));
+        }
+    }
+}
+
+void MainWindow::on_actionLoad_Stereo_Calibration_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Select file with calibration data", workingDir);
+    if (!fileName.isNull())
+    {
+        if (depthMapBuilder.loadCalibrationParams(fileName.toStdString()))
+        {
+            QMessageBox::information(this, tr("Stereo Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("Stereo Calibration"), tr("Load failed!"));
         }
     }
 }

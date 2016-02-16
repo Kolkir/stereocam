@@ -29,6 +29,8 @@ public:
 
     void stopProcessing();
 
+    bool loadCalibrationParams(const std::string& fileName);
+
 private:
 
     void processing();
@@ -44,6 +46,13 @@ private:
 
     std::thread thread;
     bool stop;
+
+    cv::Mat cameraMatrixLeft;
+    cv::Mat cameraMatrixRight;
+    cv::Mat distCoeffsLeft;
+    cv::Mat distCoeffsRight;
+    cv::Mat R, T, E, F;
+    bool hasUndistort;
 };
 
 #endif // DEPTHMAPBUILDER_H

@@ -4,6 +4,7 @@ DepthMapBuilder::DepthMapBuilder()
     : sgbm(0, 16, 3)
     , leftSource(nullptr)
     , rightSource(nullptr)
+    , hasUndistort(false)
 {
    /*sgbm.SADWindowSize = 5;
     sgbm.numberOfDisparities = 192;
@@ -69,12 +70,39 @@ void DepthMapBuilder::stopProcessing()
     }
 }
 
+bool DepthMapBuilder::loadCalibrationParams(const std::__cxx11::string &fileName)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    try
+    {
+        cv::FileStorage storage(fileName, cv::FileStorage::READ);
+        storage["CMLeft"] >> cameraMatrixLeft;
+        storage["DLeft"] >> distCoeffsLeft;
+        storage["CMRight"] >> cameraMatrixRight;
+        storage["DRight"] >> distCoeffsRight;
+        storage["R"] >> R;
+        storage["T"] >> T;
+        storage["E"] >> E;
+        storage["F"] >> F;
+        hasUndistort = true;
+        return true;
+    }
+    catch(...)
+    {
+        return false;
+    }
+}
+
 void DepthMapBuilder::processing()
 {
+    cv::Mat mapLeftx, mapLefty;
+    cv::Mat mapRightx, mapRighty;
+    bool undistortInitialized = false;
+
     cv::Mat leftImg;
     cv::Mat rightImg;
     cv::Mat tmpMap;
-    bool done =false;
+    bool done = true;
     while(!done)
     {
         {
@@ -82,7 +110,7 @@ void DepthMapBuilder::processing()
             if (rightSource != nullptr && leftSource!= nullptr)
             {
                 leftSource->getFrame(leftImg);
-                rightSource->getFrame((rightImg));
+                rightSource->getFrame(rightImg);
             }
         }
 
@@ -93,13 +121,32 @@ void DepthMapBuilder::processing()
 
         if (!leftImg.empty() && !rightImg.empty())
         {
-            if (leftImg.channels() == 3)
+            if (!undistortInitialized && hasUndistort)
+            {
+                cv::Mat R1, R2, P1, P2, Q;
+                stereoRectify(cameraMatrixLeft, distCoeffsLeft,
+                              cameraMatrixRight, distCoeffsRight, leftImg.size(), R, T, R1, R2, P1, P2, Q);
+
+
+                initUndistortRectifyMap(cameraMatrixLeft, distCoeffsLeft, R1, P1, leftImg.size(), CV_32FC1, mapLeftx, mapLefty);
+                initUndistortRectifyMap(cameraMatrixRight, distCoeffsRight, R2, P2, rightImg.size(), CV_32FC1, mapRightx, mapRighty);
+                undistortInitialized = true;
+            }
+
+            /*if (leftImg.channels() == 3)
             {
                 cv::cvtColor(leftImg, leftImg, CV_BGR2GRAY);
             }
             if (rightImg.channels() == 3)
             {
                 cv::cvtColor(rightImg, rightImg, CV_BGR2GRAY);
+            }*/
+
+            //undistort
+            if (hasUndistort)
+            {
+                cv::remap(leftImg, leftImg, mapLeftx, mapLefty, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+                cv::remap(rightImg, rightImg, mapRightx, mapRighty, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
             }
 
             int numberOfDisparities = ((leftImg.cols/8) + 15) & -16;

@@ -150,6 +150,7 @@
     <addaction name="actionCalibrate"/>
     <addaction name="actionStereo_Calibrate"/>
     <addaction name="actionLoad_Calibration"/>
+    <addaction name="actionLoad_Stereo_Calibration"/>
     <addaction name="actionUndistort"/>
     <addaction name="actionSnapshot"/>
    </widget>
@@ -313,6 +314,11 @@
    </property>
    <property name="toolTip">
     <string>Stereo Calibrate</string>
+   </property>
+  </action>
+  <action name="actionLoad_Stereo_Calibration">
+   <property name="text">
+    <string>Load Stereo Calibration ...</string>
    </property>
   </action>
  </widget>
