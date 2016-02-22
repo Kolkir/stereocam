@@ -41,6 +41,8 @@ public:
 
     bool loadCalibrationParams(const std::string& fileName);
 
+    void setUndistortMappings(const cv::Mat& mapx, const cv::Mat& mapy, const cv::Rect& roi);
+
 private:
 
     void processing();
@@ -53,6 +55,9 @@ private:
     bool outUndistort;
     cv::Mat cameraMatrix;
     cv::Mat distCoeffs;
+    cv::Mat mapx;
+    cv::Mat mapy;
+    cv::Rect remapRoi;
 
     cv::Mat frame;
     cv::Mat outFrame;

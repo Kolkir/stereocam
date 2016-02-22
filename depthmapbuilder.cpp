@@ -1,31 +1,11 @@
 #include "depthmapbuilder.h"
 
 DepthMapBuilder::DepthMapBuilder()
-    : sgbm(0, 16, 3)
+    : sbm(cv::cuda::createStereoBM())
     , leftSource(nullptr)
     , rightSource(nullptr)
     , hasUndistort(false)
 {
-   /*sgbm.SADWindowSize = 5;
-    sgbm.numberOfDisparities = 192;
-    sgbm.preFilterCap = 4;
-    sgbm.minDisparity = -64;
-    sgbm.uniquenessRatio = 1;
-    sgbm.speckleWindowSize = 150;
-    sgbm.speckleRange = 2;
-    sgbm.disp12MaxDiff = 10;
-    sgbm.fullDP = false;
-    sgbm.P1 = 600;
-    sgbm.P2 = 2400;*/
-
-
-    sgbm.minDisparity = 0;
-    sgbm.uniquenessRatio = 10;
-    sgbm.speckleWindowSize = 100;
-    sgbm.speckleRange = 32;
-    sgbm.disp12MaxDiff = 1;
-    sgbm.preFilterCap = 63;
-    sgbm.fullDP = true;
 }
 
 DepthMapBuilder::~DepthMapBuilder()
@@ -93,16 +73,76 @@ bool DepthMapBuilder::loadCalibrationParams(const std::__cxx11::string &fileName
     }
 }
 
+int DepthMapBuilder::getNumDisparities() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return sbm->getNumDisparities();
+}
+
+void DepthMapBuilder::setNumDisparities(int numDisparities)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    sbm->setNumDisparities(numDisparities);
+}
+
+
+int DepthMapBuilder::getBlockSize() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return sbm->getBlockSize();
+}
+
+void DepthMapBuilder::setBlockSize(int blockSize)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    sbm->setBlockSize(blockSize);
+}
+
+int DepthMapBuilder::getTextureThreshold() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return sbm->getTextureThreshold();
+}
+
+void DepthMapBuilder::setTextureThreshold(int textureThreshold)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    sbm->setTextureThreshold(textureThreshold);
+}
+
+void DepthMapBuilder::getLeftMapping(const cv::Size &imgSize, cv::Mat &mapx, cv::Mat &mapy, cv::Rect& roi)
+{
+    initCalibration(imgSize);
+    mapLeftx.copyTo(mapx);
+    mapLefty.copyTo(mapy);
+    roi = commonRoi;
+}
+
+void DepthMapBuilder::getRightMapping(const cv::Size &imgSize, cv::Mat &mapx, cv::Mat &mapy, cv::Rect& roi)
+{
+    initCalibration(imgSize);
+    mapRightx.copyTo(mapx);
+    mapRighty.copyTo(mapy);
+    roi = commonRoi;
+}
+
 void DepthMapBuilder::processing()
 {
-    cv::Mat mapLeftx, mapLefty;
-    cv::Mat mapRightx, mapRighty;
     bool undistortInitialized = false;
+    bool initGpu = false;
+
+    cv::cuda::GpuMat gpuLeft;
+    cv::cuda::GpuMat gpuRight;
+    cv::cuda::GpuMat gpuMap;   
+    cv::cuda::GpuMat gpuQ;
+    cv::cuda::GpuMat gpuXYZ;
 
     cv::Mat leftImg;
     cv::Mat rightImg;
     cv::Mat tmpMap;
-    bool done = true;
+    cv::Mat xyz;
+    std::vector<cv::Mat> channels;
+    bool done = false;
     while(!done)
     {
         {
@@ -123,47 +163,77 @@ void DepthMapBuilder::processing()
         {
             if (!undistortInitialized && hasUndistort)
             {
-                cv::Mat R1, R2, P1, P2, Q;
-                stereoRectify(cameraMatrixLeft, distCoeffsLeft,
-                              cameraMatrixRight, distCoeffsRight, leftImg.size(), R, T, R1, R2, P1, P2, Q);
-
-
-                initUndistortRectifyMap(cameraMatrixLeft, distCoeffsLeft, R1, P1, leftImg.size(), CV_32FC1, mapLeftx, mapLefty);
-                initUndistortRectifyMap(cameraMatrixRight, distCoeffsRight, R2, P2, rightImg.size(), CV_32FC1, mapRightx, mapRighty);
+                initCalibration(leftImg.size());
                 undistortInitialized = true;
             }
 
-            /*if (leftImg.channels() == 3)
+            if (leftImg.channels() == 3)
             {
                 cv::cvtColor(leftImg, leftImg, CV_BGR2GRAY);
             }
             if (rightImg.channels() == 3)
             {
                 cv::cvtColor(rightImg, rightImg, CV_BGR2GRAY);
-            }*/
+            }
 
             //undistort
             if (hasUndistort)
             {
-                cv::remap(leftImg, leftImg, mapLeftx, mapLefty, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
-                cv::remap(rightImg, rightImg, mapRightx, mapRighty, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+                cv::remap(leftImg, leftImg, mapLeftx, mapLefty, cv::INTER_LINEAR);
+                leftImg = leftImg(commonRoi);
+                cv::remap(rightImg, rightImg, mapRightx, mapRighty, cv::INTER_LINEAR);
+                rightImg = rightImg(commonRoi);
             }
 
-            int numberOfDisparities = ((leftImg.cols/8) + 15) & -16;
-            sgbm.numberOfDisparities = numberOfDisparities;
+            if (!initGpu)
+            {
+                gpuLeft.create(leftImg.size(), leftImg.type());
+                gpuRight.create(rightImg.size(), rightImg.type());
+                gpuMap.create(leftImg.size(), CV_16S);
+                tmpMap = cv::Mat(leftImg.size(), CV_16S);
+                gpuQ.create(Q.size(), Q.type());
+                gpuQ.upload(Q);
+                gpuXYZ.create(leftImg.size(), CV_32FC3);
+                xyz.create(leftImg.size(), CV_32FC3);
+                initGpu = true;
+            }
 
-            int cn = leftImg.channels();
+            gpuLeft.upload(leftImg);
+            gpuRight.upload(rightImg);
 
-            int sgbmWinSize = 3;
+            sbm->compute(gpuLeft, gpuRight, gpuMap);
+            //cv::cuda::reprojectImageTo3D(gpuMap, gpuXYZ, gpuQ, 3);
+            gpuMap.download(tmpMap);
 
-            sgbm.P1 = (8*cn*sgbmWinSize*sgbmWinSize);
-            sgbm.P2 = (32*cn*sgbmWinSize*sgbmWinSize);
+            cv::normalize(tmpMap, tmpMap, 0, 255, CV_MINMAX, CV_8U);
 
-            sgbm(leftImg, rightImg, tmpMap);
-            normalize(tmpMap, tmpMap, 0, 255, CV_MINMAX, CV_8U);
+            //cv::reprojectImageTo3D(tmpMap, xyz, Q, true,  CV_32F);
+
+            //cv::split(xyz, channels);
+
+            //cv::normalize(channels[2], tmpMap, 0, 255, CV_MINMAX, CV_8U);
+
+            //cv::normalize(xyz, tmpMap, 0, 255, CV_MINMAX, CV_32FC3);
+            //tmpMap.convertTo(tmpMap, CV_8UC3);
 
             std::unique_lock<std::mutex> lock(outGuard);
             tmpMap.copyTo(depthMap);
         }
     }
+}
+
+void DepthMapBuilder::initCalibration(const cv::Size &imgSize)
+{
+    cv::Mat R1, R2, P1, P2;
+    cv::stereoRectify(cameraMatrixLeft, distCoeffsLeft,
+                     cameraMatrixRight, distCoeffsRight,
+                     imgSize,
+                     R, T, R1, R2, P1, P2, Q,
+                     cv::CALIB_ZERO_DISPARITY, 1,
+                     imgSize, &leftRoi, &rightRoi);
+
+    commonRoi = leftRoi & rightRoi;
+
+    initUndistortRectifyMap(cameraMatrixLeft, distCoeffsLeft, R1, P1, imgSize, CV_32FC1, mapLeftx, mapLefty);
+    initUndistortRectifyMap(cameraMatrixRight, distCoeffsRight, R2, P2, imgSize, CV_32FC1, mapRightx, mapRighty);
 }

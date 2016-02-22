@@ -75,13 +75,35 @@
              </layout>
             </widget>
             <widget class="QWidget" name="depthMapPage">
+             <property name="minimumSize">
+              <size>
+               <width>689</width>
+               <height>0</height>
+              </size>
+             </property>
              <layout class="QGridLayout" name="gridLayout_2">
               <item row="0" column="0">
-               <layout class="QHBoxLayout" name="depthMapLayout">
+               <layout class="QHBoxLayout" name="depthMapHorizontalLayout">
+                <item>
+                 <widget class="QTableView" name="depthSettingsTableView">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>240</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
                 <item>
                  <widget class="QLabel" name="depthMapLabel">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>

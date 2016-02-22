@@ -12,6 +12,7 @@
 #include "frameprocessor.h"
 #include "depthmapbuilder.h"
 #include "qframeconverter.h"
+#include "dmapsettingsmodel.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -117,6 +118,7 @@ private:
     QString workingDir;
 
     DepthMapBuilder depthMapBuilder;
+    DMapSettingsModel dmapSettingsModel;
 };
 
 #endif // MAINWINDOW_H

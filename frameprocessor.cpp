@@ -5,8 +5,6 @@ FrameProcessor::FrameProcessor()
     , outChannel(-1)
     , outGray(false)    
     , outUndistort(false)
-    , cameraMatrix(cv::Mat::eye(3, 3, CV_64F))
-    , distCoeffs(cv::Mat::zeros(8, 1, CV_64F))
     , stop(false)
 {
 
@@ -62,7 +60,16 @@ void FrameProcessor::processing()
         {
             if (undistort)
             {
-                cv::undistort(tmp, frameUndistort, cameraMatrix, distCoeffs);
+                //TODO: fix sync outGuard
+                if (!cameraMatrix.empty())
+                {
+                    cv::undistort(tmp, frameUndistort, cameraMatrix, distCoeffs);
+                }
+                else if (!mapx.empty())
+                {
+                    cv::remap(tmp, frameUndistort, mapx, mapy, cv::INTER_LINEAR);
+                    frameUndistort = frameUndistort(remapRoi);
+                }
                 frameUndistort.copyTo(tmp);
             }
 
@@ -86,7 +93,7 @@ void FrameProcessor::processing()
             }
 
             //draw center lines
-            {
+            /*{
                 cv::Scalar color(0,255,0);
                 if (tmp.channels() == 1)
                 {
@@ -116,7 +123,7 @@ void FrameProcessor::processing()
                     cv::Point hend2(tmp.cols/2+abs(li),tmp.rows/2-li);
                     cv::line(tmp, hstart2, hend2, color, 1);
                 }
-            }
+            }*/
             {
                 std::unique_lock<std::mutex> lock(outGuard);
                 tmp.copyTo(outFrame);
@@ -187,4 +194,12 @@ bool FrameProcessor::loadCalibrationParams(const std::string &fileName)
     {
         return false;
     }
+}
+
+void FrameProcessor::setUndistortMappings(const cv::Mat &mapx, const cv::Mat &mapy, const cv::Rect &roi)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    this->mapx = mapx.clone();
+    this->mapy = mapy.clone();
+    this->remapRoi = roi;
 }

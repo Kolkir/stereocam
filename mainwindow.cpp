@@ -16,7 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
     currentY(0),
     colorViewType(COLOR_RGB),
     currentCamera{-1,-1},
-    workingDir(QDir::currentPath())
+    workingDir(QDir::currentPath()),
+    dmapSettingsModel(0, depthMapBuilder)
 {
     ui->setupUi(this);
 
@@ -58,7 +59,13 @@ MainWindow::MainWindow(QWidget *parent) :
     converterThread[2].start();
     converter[2].moveToThread(&converterThread[2]);
 
+    ui->depthSettingsTableView->setModel(&dmapSettingsModel);
+
     ui->actionCameraView->setChecked(true);
+    this->converter[0].pause(false);
+    this->converter[1].pause(false);
+    this->converter[2].pause(true);
+    depthMapBuilder.stopProcessing();
     ui->viewStackedWidget->setCurrentIndex(0);
 }
 
@@ -238,8 +245,7 @@ void MainWindow::updateActions()
     ui->actionDepthMapView->setEnabled(realCamNum > 1);
 
     if (imageExist)
-    {        
-        ui->actionCameraView->setEnabled(true);
+    {                
         ui->actionZoom_In->setEnabled(true);
         ui->actionZoom_Out->setEnabled(true);
         ui->action100->setEnabled(true);
@@ -252,7 +258,6 @@ void MainWindow::updateActions()
     }
     else
     {
-        ui->actionCameraView->setEnabled(false);
         ui->actionZoom_In->setEnabled(false);
         ui->actionZoom_Out->setEnabled(false);
         ui->action100->setEnabled(false);
@@ -521,37 +526,42 @@ void MainWindow::on_actionCameraSetup_triggered()
 
 void MainWindow::on_actionCameraView_triggered()
 {
-    if(ui->actionDepthMapView->isChecked())
-    {
-        ui->actionDepthMapView->setChecked(false);
-    }
     ui->actionCameraView->setChecked(true);
+    if (ui->viewStackedWidget->currentIndex() != 0)
+    {
+        if(ui->actionDepthMapView->isChecked())
+        {
+            ui->actionDepthMapView->setChecked(false);
+        }
 
-    this->converter[0].pause(false);
-    this->converter[1].pause(false);
-    this->converter[2].pause(true);
+        this->converter[0].pause(false);
+        this->converter[1].pause(false);
+        this->converter[2].pause(true);
 
-    ui->viewStackedWidget->setCurrentIndex(0);
+        ui->viewStackedWidget->setCurrentIndex(0);
 
-    depthMapBuilder.stopProcessing();
+        depthMapBuilder.stopProcessing();
+    }
 }
 
 void MainWindow::on_actionDepthMapView_triggered()
 {
-    if(ui->actionCameraView->isChecked())
-    {
-        ui->actionCameraView->setChecked(false);
-    }
     ui->actionDepthMapView->setChecked(true);
+    if (ui->viewStackedWidget->currentIndex() != 1)
+    {
+        if(ui->actionCameraView->isChecked())
+        {
+            ui->actionCameraView->setChecked(false);
+        }
 
-    this->converter[0].pause(true);
-    this->converter[1].pause(true);
-    this->converter[2].pause(false);
+        this->converter[0].pause(true);
+        this->converter[1].pause(true);
+        this->converter[2].pause(false);
 
+        ui->viewStackedWidget->setCurrentIndex(1);
 
-    ui->viewStackedWidget->setCurrentIndex(1);
-
-    depthMapBuilder.startProcessing();
+        depthMapBuilder.startProcessing();
+    }
 }
 
 void MainWindow::on_actionStereo_Calibrate_triggered()
@@ -607,6 +617,16 @@ void MainWindow::on_actionLoad_Stereo_Calibration_triggered()
     {
         if (depthMapBuilder.loadCalibrationParams(fileName.toStdString()))
         {
+            cv::Size imgSize(this->currentSize.width(), this->currentSize.height());
+            cv::Mat mapx, mapy;
+            cv::Rect roi;
+
+            depthMapBuilder.getLeftMapping(imgSize, mapx, mapy, roi);
+            frameProcessor[0].setUndistortMappings(mapx, mapy, roi);
+
+            depthMapBuilder.getRightMapping(imgSize, mapx, mapy, roi);
+            frameProcessor[1].setUndistortMappings(mapx, mapy, roi);
+
             QMessageBox::information(this, tr("Stereo Calibration"), tr("Loaded succesfully!"), QMessageBox::Ok);
         }
         else

@@ -266,13 +266,22 @@ bool stereoCalibrate(int squareSize,
     //calibrate
     cv::Mat cameraMatrixLeft = cv::Mat::eye(3, 3, CV_64F);
     cv::Mat cameraMatrixRight = cv::Mat::eye(3, 3, CV_64F);
+    cameraMatrixLeft = cv::initCameraMatrix2D(objectPoints,imagePointsLeft,imageSize,0);
+    cameraMatrixRight = cv::initCameraMatrix2D(objectPoints,imagePointsRight,imageSize,0);
+
+
     cv::Mat distCoeffsLeft, distCoeffsRight;
     cv::Mat R, T, E, F;
 
     cv::stereoCalibrate(objectPoints, imagePointsLeft, imagePointsRight,
                         cameraMatrixLeft, distCoeffsLeft, cameraMatrixRight, distCoeffsRight, imageSize, R, T, E, F,
-                        cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 100, 1e-5),
-                        CV_CALIB_SAME_FOCAL_LENGTH | CV_CALIB_ZERO_TANGENT_DIST);
+                        cv::CALIB_FIX_ASPECT_RATIO +
+                        cv::CALIB_ZERO_TANGENT_DIST +
+                        cv::CALIB_USE_INTRINSIC_GUESS +
+                        cv::CALIB_SAME_FOCAL_LENGTH +
+                        cv::CALIB_RATIONAL_MODEL +
+                        cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5,
+                        cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 100, 1e-5));
 
     bool ok = cv::checkRange(cameraMatrixLeft) && cv::checkRange(distCoeffsLeft) &&
               cv::checkRange(cameraMatrixRight) && cv::checkRange(distCoeffsRight);
