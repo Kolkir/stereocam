@@ -1,5 +1,7 @@
 #include "depthmapbuilder.h"
 
+#include <opencv2/photo/cuda.hpp>
+
 DepthMapBuilder::DepthMapBuilder()
     : sbm(cv::cuda::createStereoBM())
     , leftSource(nullptr)
@@ -136,6 +138,8 @@ void DepthMapBuilder::processing()
     cv::cuda::GpuMat gpuMap;   
     cv::cuda::GpuMat gpuQ;
     cv::cuda::GpuMat gpuXYZ;
+    cv::cuda::GpuMat denoiseLeft;
+    cv::cuda::GpuMat denoiseRight;
 
     cv::Mat leftImg;
     cv::Mat rightImg;
@@ -174,7 +178,7 @@ void DepthMapBuilder::processing()
             if (rightImg.channels() == 3)
             {
                 cv::cvtColor(rightImg, rightImg, CV_BGR2GRAY);
-            }
+            }            
 
             //undistort
             if (hasUndistort)
@@ -201,20 +205,17 @@ void DepthMapBuilder::processing()
             gpuLeft.upload(leftImg);
             gpuRight.upload(rightImg);
 
-            sbm->compute(gpuLeft, gpuRight, gpuMap);
-            //cv::cuda::reprojectImageTo3D(gpuMap, gpuXYZ, gpuQ, 3);
+            cv::cuda::fastNlMeansDenoising(gpuLeft,denoiseLeft,7);
+            cv::cuda::fastNlMeansDenoising(gpuRight,denoiseRight,7);
+
+            sbm->compute(denoiseLeft, denoiseRight, gpuMap);
+
             gpuMap.download(tmpMap);
+
 
             cv::normalize(tmpMap, tmpMap, 0, 255, CV_MINMAX, CV_8U);
 
-            //cv::reprojectImageTo3D(tmpMap, xyz, Q, true,  CV_32F);
-
-            //cv::split(xyz, channels);
-
-            //cv::normalize(channels[2], tmpMap, 0, 255, CV_MINMAX, CV_8U);
-
-            //cv::normalize(xyz, tmpMap, 0, 255, CV_MINMAX, CV_32FC3);
-            //tmpMap.convertTo(tmpMap, CV_8UC3);
+            //cv::resize(tmpMap, tmpMap, cv::Size(), 1.5, 1.5, cv::INTER_CUBIC);
 
             std::unique_lock<std::mutex> lock(outGuard);
             tmpMap.copyTo(depthMap);
