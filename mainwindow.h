@@ -79,6 +79,8 @@ private slots:
 
     void on_actionLoad_Stereo_Calibration_triggered();
 
+    void on_actionDepth_Map_snaphot_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);

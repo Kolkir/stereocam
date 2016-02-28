@@ -27,11 +27,27 @@ QVariant DMapSettingsModel::data(const QModelIndex &index, int role) const
             switch(index.row())
             {
             case 0:
-                return QString("NumDisparities");
+                return QString("MinDisparity");
             case 1:
-                return QString("BlockSize");
+                return QString("NumDisparities");
             case 2:
-                return QString("TextureThreshold");
+                return QString("BlockSize");
+            case 3:
+                return QString("P1");
+            case 4:
+                return QString("P2");
+            case 5:
+                return QString("disp12MaxDiff");
+            case 6:
+                return QString("preFilterCap");
+            case 7:
+                return QString("uniquenessRatio");
+            case 8:
+                return QString("speckleWindowSize");
+            case 9:
+                return QString("speckleRange");
+            case 10:
+                return QString("mode");
             }
         }
         //values
@@ -40,11 +56,27 @@ QVariant DMapSettingsModel::data(const QModelIndex &index, int role) const
             switch(index.row())
             {
             case 0:
-                return dmapBuilder->getNumDisparities();
+                return dmapBuilder->getMinDisparity();
             case 1:
-                return dmapBuilder->getBlockSize();
+                return dmapBuilder->getNumDisparities();
             case 2:
-                return dmapBuilder->getTextureThreshold();
+                return dmapBuilder->getBlockSize();
+            case 3:
+                return dmapBuilder->getP1();
+            case 4:
+                return dmapBuilder->getP2();
+            case 5:
+                return dmapBuilder->getDisp12MaxDiff();
+            case 6:
+                return dmapBuilder->getPreFilterCap();
+            case 7:
+                return dmapBuilder->getUniquenessRatio();
+            case 8:
+                return dmapBuilder->getSpeckleWindowSize();
+            case 9:
+                return dmapBuilder->getSpeckleRange();
+            case 10:
+                return dmapBuilder->getMode();
             }
         }
     }
@@ -78,14 +110,38 @@ bool DMapSettingsModel::setData(const QModelIndex & index, const QVariant & valu
             switch(index.row())
             {
             case 0:
-                dmapBuilder->setNumDisparities(ival);
+                dmapBuilder->setMinDisparity(ival);
                 break;
             case 1:
-                dmapBuilder->setBlockSize(ival);
+                dmapBuilder->setNumDisparities(ival);
                 break;
             case 2:
-                dmapBuilder->setTextureThreshold(ival);
+                dmapBuilder->setBlockSize(ival);
                 break;           
+            case 3:
+                dmapBuilder->setP1(ival);
+                break;
+            case 4:
+                dmapBuilder->setP2(ival);
+                break;
+            case 5:
+                dmapBuilder->setDisp12MaxDiff(ival);
+                break;
+            case 6:
+                dmapBuilder->setPreFilterCap(ival);
+                break;
+            case 7:
+                dmapBuilder->setUniquenessRatio(ival);
+                break;
+            case 8:
+                dmapBuilder->setSpeckleWindowSize(ival);
+                break;
+            case 9:
+                dmapBuilder->setSpeckleRange(ival);
+                break;
+            case 10:
+                dmapBuilder->setMode(ival);
+                break;
             }
         }
     }

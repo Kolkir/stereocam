@@ -3,11 +3,22 @@
 #include <opencv2/photo/cuda.hpp>
 
 DepthMapBuilder::DepthMapBuilder()
-    : sbm(cv::cuda::createStereoBM())
+    : stereoMatcher(cv::StereoSGBM::create(0, 16, 3))
     , leftSource(nullptr)
     , rightSource(nullptr)
     , hasUndistort(false)
 {
+    stereoMatcher->setPreFilterCap(63);
+    int sgbmWinSize = 3;
+    int cn = 1;
+    stereoMatcher->setBlockSize(sgbmWinSize);
+    stereoMatcher->setP1(8*cn*sgbmWinSize*sgbmWinSize);
+    stereoMatcher->setP2(32*cn*sgbmWinSize*sgbmWinSize);
+    stereoMatcher->setUniquenessRatio(10);
+    stereoMatcher->setSpeckleWindowSize(100);
+    stereoMatcher->setSpeckleRange(32);
+    stereoMatcher->setDisp12MaxDiff(1);
+    stereoMatcher->setMode(cv::StereoSGBM::MODE_HH);
 }
 
 DepthMapBuilder::~DepthMapBuilder()
@@ -75,41 +86,136 @@ bool DepthMapBuilder::loadCalibrationParams(const std::__cxx11::string &fileName
     }
 }
 
+int DepthMapBuilder::getMinDisparity() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getMinDisparity();
+}
+
+void DepthMapBuilder::setMinDisparity(int minDisparity)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setMinDisparity(minDisparity);
+}
+
 int DepthMapBuilder::getNumDisparities() const
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    return sbm->getNumDisparities();
+    return stereoMatcher->getNumDisparities();
 }
 
 void DepthMapBuilder::setNumDisparities(int numDisparities)
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    sbm->setNumDisparities(numDisparities);
+    stereoMatcher->setNumDisparities(numDisparities);
 }
-
 
 int DepthMapBuilder::getBlockSize() const
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    return sbm->getBlockSize();
+    return stereoMatcher->getBlockSize();
 }
 
 void DepthMapBuilder::setBlockSize(int blockSize)
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    sbm->setBlockSize(blockSize);
+    stereoMatcher->setBlockSize(blockSize);
 }
 
-int DepthMapBuilder::getTextureThreshold() const
+int  DepthMapBuilder::getP1() const
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    return sbm->getTextureThreshold();
+    return stereoMatcher->getP1();
 }
 
-void DepthMapBuilder::setTextureThreshold(int textureThreshold)
+void DepthMapBuilder::setP1(int p1)
 {
     std::unique_lock<std::mutex> lock(outGuard);
-    sbm->setTextureThreshold(textureThreshold);
+    stereoMatcher->setP1(p1);
+}
+
+int DepthMapBuilder::getP2() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getP2();
+}
+
+void DepthMapBuilder::setP2(int p2)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setP2(p2);
+}
+
+int DepthMapBuilder::getDisp12MaxDiff() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getDisp12MaxDiff();
+}
+
+void DepthMapBuilder::setDisp12MaxDiff(int disp12MaxDiff)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setDisp12MaxDiff(disp12MaxDiff);
+}
+
+int DepthMapBuilder::getPreFilterCap() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getPreFilterCap();
+}
+
+void DepthMapBuilder::setPreFilterCap(int preFilterCap)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setPreFilterCap(preFilterCap);
+}
+
+int DepthMapBuilder::getUniquenessRatio() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getUniquenessRatio();
+}
+
+void DepthMapBuilder::setUniquenessRatio(int uniquenessRatio)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setUniquenessRatio(uniquenessRatio);
+}
+
+int DepthMapBuilder::getSpeckleWindowSize() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getSpeckleWindowSize();
+}
+
+void DepthMapBuilder::setSpeckleWindowSize(int speckleWindowSize)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setSpeckleWindowSize(speckleWindowSize);
+}
+
+int DepthMapBuilder::getSpeckleRange() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getSpeckleRange();
+}
+
+void DepthMapBuilder::setSpeckleRange(int speckleRange)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setSpeckleRange(speckleRange);
+}
+
+int DepthMapBuilder::getMode() const
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    return stereoMatcher->getMode();
+}
+
+void DepthMapBuilder::setMode(int mode)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    stereoMatcher->setMode(mode);
 }
 
 void DepthMapBuilder::getLeftMapping(const cv::Size &imgSize, cv::Mat &mapx, cv::Mat &mapy, cv::Rect& roi)
@@ -128,24 +234,21 @@ void DepthMapBuilder::getRightMapping(const cv::Size &imgSize, cv::Mat &mapx, cv
     roi = commonRoi;
 }
 
+void DepthMapBuilder::saveDepthMap(const std::string &fileName)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    cv::imwrite(fileName, depthMap);
+}
+
 void DepthMapBuilder::processing()
 {
     bool undistortInitialized = false;
-    bool initGpu = false;
-
-    cv::cuda::GpuMat gpuLeft;
-    cv::cuda::GpuMat gpuRight;
-    cv::cuda::GpuMat gpuMap;   
-    cv::cuda::GpuMat gpuQ;
-    cv::cuda::GpuMat gpuXYZ;
-    cv::cuda::GpuMat denoiseLeft;
-    cv::cuda::GpuMat denoiseRight;
 
     cv::Mat leftImg;
     cv::Mat rightImg;
-    cv::Mat tmpMap;
-    cv::Mat xyz;
-    std::vector<cv::Mat> channels;
+    cv::Mat disp;
+    cv::Mat filterBuf;
+
     bool done = false;
     while(!done)
     {
@@ -189,36 +292,17 @@ void DepthMapBuilder::processing()
                 rightImg = rightImg(commonRoi);
             }
 
-            if (!initGpu)
-            {
-                gpuLeft.create(leftImg.size(), leftImg.type());
-                gpuRight.create(rightImg.size(), rightImg.type());
-                gpuMap.create(leftImg.size(), CV_16S);
-                tmpMap = cv::Mat(leftImg.size(), CV_16S);
-                gpuQ.create(Q.size(), Q.type());
-                gpuQ.upload(Q);
-                gpuXYZ.create(leftImg.size(), CV_32FC3);
-                xyz.create(leftImg.size(), CV_32FC3);
-                initGpu = true;
-            }
+            //cv::fastNlMeansDenoising(leftImg, leftImg, 15);
+            //cv::fastNlMeansDenoising(rightImg, rightImg, 15);
 
-            gpuLeft.upload(leftImg);
-            gpuRight.upload(rightImg);
+            stereoMatcher->compute(leftImg, rightImg, disp);
 
-            cv::cuda::fastNlMeansDenoising(gpuLeft,denoiseLeft,7);
-            cv::cuda::fastNlMeansDenoising(gpuRight,denoiseRight,7);
+            //cv::filterSpeckles(disp,0, 10, 1, filterBuf);
 
-            sbm->compute(denoiseLeft, denoiseRight, gpuMap);
-
-            gpuMap.download(tmpMap);
-
-
-            cv::normalize(tmpMap, tmpMap, 0, 255, CV_MINMAX, CV_8U);
-
-            //cv::resize(tmpMap, tmpMap, cv::Size(), 1.5, 1.5, cv::INTER_CUBIC);
+            disp.convertTo(disp, CV_8U, 255/(stereoMatcher->getNumDisparities()*16.));
 
             std::unique_lock<std::mutex> lock(outGuard);
-            tmpMap.copyTo(depthMap);
+            disp.copyTo(depthMap);
         }
     }
 }

@@ -37,6 +37,12 @@ void FrameProcessor::processing()
     bool undistort = false;
     cv::Mat frameUndistort;
 
+
+    int maxMeanFilter = 5;
+    std::vector<cv::Mat> meanFilterBuff(maxMeanFilter);
+    cv::Mat filterValues(maxMeanFilter,1,CV_8U);
+    int currMeanFilter = 0;
+
     bool done =false;
     while(!done)
     {
@@ -91,6 +97,33 @@ void FrameProcessor::processing()
                     channels[channel].copyTo(tmp);
                 }
             }
+
+            //noise filter
+            /*if (tmp.channels() == 1)
+            {
+                tmp.copyTo(meanFilterBuff[currMeanFilter]);
+                ++currMeanFilter;
+                if(currMeanFilter >= maxMeanFilter)
+                {
+                    currMeanFilter  = 0;
+                }
+
+                for(int y = 0; y < tmp.rows; ++y)
+                {
+                    for(int x = 0; x < tmp.cols; ++x)
+                    {
+                        for (int i = 0; i < maxMeanFilter; ++i)
+                        {
+                            if (!meanFilterBuff[i].empty())
+                            {
+                                filterValues.at<uchar>(i,0) = meanFilterBuff[i].at<uchar>(y,x);
+                            }
+                        }
+                        auto pixelMean = cv::mean(filterValues);
+                        tmp.at<uchar>(y,x) = pixelMean[0];
+                    }
+                }
+            }*/
 
             //draw center lines
             /*{

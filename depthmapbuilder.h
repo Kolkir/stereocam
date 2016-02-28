@@ -33,19 +33,45 @@ public:
     bool loadCalibrationParams(const std::string& fileName);
 
     //configuration
+    int getMinDisparity() const;
+    void setMinDisparity(int minDisparities);
+
     int getNumDisparities() const;
     void setNumDisparities(int numDisparities);
 
     int getBlockSize() const;
     void setBlockSize(int blockSize);
 
-    int getTextureThreshold() const;
-    void setTextureThreshold(int textureThreshold);
+    int  getP1() const;
+    void setP1(int p1);
+
+    int getP2() const;
+    void setP2(int p2);
+
+    int getDisp12MaxDiff() const;
+    void setDisp12MaxDiff(int disp12MaxDiff);
+
+    int getPreFilterCap() const;
+    void setPreFilterCap(int preFilterCap);
+
+    int getUniquenessRatio() const;
+    void setUniquenessRatio(int uniquenessRatio);
+
+    int getSpeckleWindowSize() const;
+    void setSpeckleWindowSize(int speckleWindowSize);
+
+    int getSpeckleRange() const;\
+    void setSpeckleRange(int speckleRange);
+
+    int getMode() const;
+    void setMode(int mode);
 
     //calibration
 
     void getLeftMapping(const cv::Size& imgSize, cv::Mat& mapx, cv::Mat& mapy, cv::Rect& roi);
     void getRightMapping(const cv::Size& imgSize, cv::Mat& mapx, cv::Mat& mapy, cv::Rect& roi);
+
+    void saveDepthMap(const std::string& fileName);
 
 private:
 
@@ -54,7 +80,7 @@ private:
     void initCalibration(const cv::Size& imgSize);
 
 private:
-    cv::Ptr<cv::cuda::StereoBM> sbm;
+    cv::Ptr<cv::StereoSGBM> stereoMatcher;
 
     FrameSource* leftSource;
     FrameSource* rightSource;

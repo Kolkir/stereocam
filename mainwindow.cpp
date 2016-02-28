@@ -635,3 +635,18 @@ void MainWindow::on_actionLoad_Stereo_Calibration_triggered()
         }
     }
 }
+
+void MainWindow::on_actionDepth_Map_snaphot_triggered()
+{
+    QDir wdir(workingDir);
+    if (!wdir.exists())
+    {
+        QDir().mkdir(workingDir);
+    }
+
+    const QString filename = workingDir + utils::getTimestampFileName(QString("/depthmap"),"png");
+
+    depthMapBuilder.saveDepthMap(filename.toStdString());
+
+    updateActions();
+}

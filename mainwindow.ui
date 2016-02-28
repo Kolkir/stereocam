@@ -175,6 +175,7 @@
     <addaction name="actionLoad_Stereo_Calibration"/>
     <addaction name="actionUndistort"/>
     <addaction name="actionSnapshot"/>
+    <addaction name="actionDepth_Map_snaphot"/>
    </widget>
    <widget class="QMenu" name="menuView_2">
     <property name="title">
@@ -341,6 +342,11 @@
   <action name="actionLoad_Stereo_Calibration">
    <property name="text">
     <string>Load Stereo Calibration ...</string>
+   </property>
+  </action>
+  <action name="actionDepth_Map_snaphot">
+   <property name="text">
+    <string>Depth Map snaphot </string>
    </property>
   </action>
  </widget>

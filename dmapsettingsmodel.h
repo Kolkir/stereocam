@@ -12,7 +12,7 @@ Q_OBJECT
 
 private:
     static const int COLS = 2;
-    static const int ROWS = 3;
+    static const int ROWS = 11;
 public:
     DMapSettingsModel(QObject *parent, DepthMapBuilder& dmapBuilder);
     int rowCount(const QModelIndex &parent = QModelIndex()) const ;
