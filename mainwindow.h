@@ -14,6 +14,15 @@
 #include "qframeconverter.h"
 #include "dmapsettingsmodel.h"
 
+// Point Cloud Library
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+// Visualization Toolkit (VTK)
+#include <vtkRenderWindow.h>
+
+//OpenCV
 #include <opencv2/opencv.hpp>
 
 #include <memory>
@@ -21,6 +30,9 @@
 namespace Ui {
 class MainWindow;
 }
+
+typedef pcl::PointXYZRGBA PointT;
+typedef pcl::PointCloud<PointT> PointCloudT;
 
 enum COLOR_TYPE
 {
@@ -81,6 +93,8 @@ private slots:
 
     void on_actionDepth_Map_snaphot_triggered();
 
+    void on_actionPC3DView_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);
@@ -121,6 +135,9 @@ private:
 
     DepthMapBuilder depthMapBuilder;
     DMapSettingsModel dmapSettingsModel;
+
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+    PointCloudT::Ptr cloud;
 };
 
 #endif // MAINWINDOW_H

@@ -1,5 +1,7 @@
 #include "frameprocessor.h"
 
+#include <deque>
+
 FrameProcessor::FrameProcessor()
     : outScaleFactor(1)
     , outChannel(-1)
@@ -38,10 +40,14 @@ void FrameProcessor::processing()
     cv::Mat frameUndistort;
 
 
-    int maxMeanFilter = 5;
-    std::vector<cv::Mat> meanFilterBuff(maxMeanFilter);
-    cv::Mat filterValues(maxMeanFilter,1,CV_8U);
-    int currMeanFilter = 0;
+    cv::Mat fgmask;
+    cv::Ptr<cv::BackgroundSubtractorMOG2> bgmog = cv::createBackgroundSubtractorMOG2();
+
+    cv::Mat medianTmp;
+    std::deque<cv::Mat> medianQueue;
+    int maxMedianNum = 15;
+    std::vector<cv::Mat> medianList(maxMedianNum);
+
 
     bool done =false;
     while(!done)
@@ -99,31 +105,38 @@ void FrameProcessor::processing()
             }
 
             //noise filter
-            /*if (tmp.channels() == 1)
+            if (tmp.channels() == 1)
             {
-                tmp.copyTo(meanFilterBuff[currMeanFilter]);
-                ++currMeanFilter;
-                if(currMeanFilter >= maxMeanFilter)
+                //bgmog->apply(tmp, fgmask);
+                //bgmog->getBackgroundImage(tmp);
+
+                if (medianQueue.size() == maxMedianNum)
                 {
-                    currMeanFilter  = 0;
+                    medianQueue.pop_front();
+                }
+                medianQueue.push_back(tmp);
+
+                for(int i = 0; i < medianQueue.size(); i++)
+                {
+                    medianQueue[i].copyTo(medianList[i]);
                 }
 
-                for(int y = 0; y < tmp.rows; ++y)
+                if (medianQueue.size() == maxMedianNum)
                 {
-                    for(int x = 0; x < tmp.cols; ++x)
+                    for(int i = 0; i < medianList.size(); i++)
                     {
-                        for (int i = 0; i < maxMeanFilter; ++i)
+                        for(int j = i + 1; j < medianList.size(); j++)
                         {
-                            if (!meanFilterBuff[i].empty())
-                            {
-                                filterValues.at<uchar>(i,0) = meanFilterBuff[i].at<uchar>(y,x);
-                            }
+                            medianList[i].copyTo(medianTmp);
+                            min(medianList[i], medianList[j], medianList[i]);
+                            max(medianList[j], medianTmp, medianList[j]);
                         }
-                        auto pixelMean = cv::mean(filterValues);
-                        tmp.at<uchar>(y,x) = pixelMean[0];
                     }
+
+                    tmp = medianList[medianList.size() / 2];
                 }
-            }*/
+
+            }
 
             //draw center lines
             /*{

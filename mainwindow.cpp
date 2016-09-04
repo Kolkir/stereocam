@@ -66,7 +66,20 @@ MainWindow::MainWindow(QWidget *parent) :
     this->converter[1].pause(false);
     this->converter[2].pause(true);
     depthMapBuilder.stopProcessing();
+
     ui->viewStackedWidget->setCurrentIndex(0);
+
+
+    cloud.reset (new PointCloudT);    
+    viewer.reset (new pcl::visualization::PCLVisualizer ("viewer", false));
+    viewer->setBackgroundColor (0.1, 0.1, 0.1);
+    viewer->addCoordinateSystem (1.0);
+    ui->pc3dVtk->SetRenderWindow (viewer->getRenderWindow ());
+    viewer->setupInteractor (ui->pc3dVtk->GetInteractor (), ui->pc3dVtk->GetRenderWindow ());
+    ui->pc3dVtk->update ();
+    //viewer->addPointCloud (cloud, "cloud");
+    //viewer->resetCamera ();
+    //ui->pc3dVtk->update ();
 }
 
 MainWindow::~MainWindow()
@@ -243,6 +256,7 @@ void MainWindow::updateActions()
     ui->actionLoad_Stereo_Calibration->setEnabled(enable);
 
     ui->actionDepthMapView->setEnabled(realCamNum > 1);
+    ui->actionPC3DView->setEnabled(realCamNum > 1);
 
     if (imageExist)
     {                
@@ -534,6 +548,11 @@ void MainWindow::on_actionCameraView_triggered()
             ui->actionDepthMapView->setChecked(false);
         }
 
+        if(ui->actionPC3DView->isChecked())
+        {
+            ui->actionPC3DView->setChecked(false);
+        }
+
         this->converter[0].pause(false);
         this->converter[1].pause(false);
         this->converter[2].pause(true);
@@ -553,6 +572,12 @@ void MainWindow::on_actionDepthMapView_triggered()
         {
             ui->actionCameraView->setChecked(false);
         }
+
+        if(ui->actionPC3DView->isChecked())
+        {
+            ui->actionPC3DView->setChecked(false);
+        }
+
 
         this->converter[0].pause(true);
         this->converter[1].pause(true);
@@ -649,4 +674,59 @@ void MainWindow::on_actionDepth_Map_snaphot_triggered()
     depthMapBuilder.saveDepthMap(filename.toStdString());
 
     updateActions();
+}
+
+
+void MainWindow::on_actionPC3DView_triggered()
+{
+    ui->actionPC3DView->setChecked(true);
+    if (ui->viewStackedWidget->currentIndex() != 2)
+    {
+        if(ui->actionDepthMapView->isChecked())
+        {
+            ui->actionDepthMapView->setChecked(false);
+        }
+
+        if(ui->actionCameraView->isChecked())
+        {
+            ui->actionCameraView->setChecked(false);
+        }
+
+        this->converter[0].pause(true);
+        this->converter[1].pause(true);
+        this->converter[2].pause(true);
+
+        depthMapBuilder.stopProcessing();
+        ui->viewStackedWidget->setCurrentIndex(2);
+
+
+        std::vector<cv::Vec3f> points;
+        std::vector<cv::Vec3b> colors;
+        depthMapBuilder.getPoints(points, colors);
+
+        cloud->points.resize (points.size());
+
+        // Fill the cloud with points
+        for (size_t i = 0; i < cloud->points.size (); ++i)
+        {
+            cloud->points[i].x = points[i][0];
+            cloud->points[i].y = points[i][1];
+            cloud->points[i].z = points[i][2];
+
+            cloud->points[i].r = colors[i][0];
+            cloud->points[i].g = colors[i][1];
+            cloud->points[i].b = colors[i][2];
+        }
+
+        cloud->width = points.size();
+        cloud->height = 1;
+
+        if (!viewer->updatePointCloud(cloud, "cloud"))
+        {
+            viewer->addPointCloud (cloud, "cloud");
+        }
+
+        viewer->updateCamera();
+        ui->pc3dVtk->update ();
+    }
 }

@@ -50,7 +50,7 @@
              </sizepolicy>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="cameraPage">
              <layout class="QGridLayout" name="gridLayout">
@@ -112,6 +112,33 @@
                    <string/>
                   </property>
                  </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="pc3dPage">
+             <layout class="QGridLayout" name="gridLayout_3">
+              <item row="0" column="0">
+               <layout class="QHBoxLayout" name="pc3dHorisontalLayout">
+                <item>
+                 <widget class="QTableView" name="pc3dSettingTableView">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>240</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QVTKWidget" name="pc3dVtk" native="true"/>
                 </item>
                </layout>
               </item>
@@ -184,6 +211,7 @@
     <addaction name="separator"/>
     <addaction name="actionCameraView"/>
     <addaction name="actionDepthMapView"/>
+    <addaction name="actionPC3DView"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView_2"/>
@@ -349,7 +377,22 @@
     <string>Depth Map snaphot </string>
    </property>
   </action>
+  <action name="actionPC3DView">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Point Cloud 3D</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QVTKWidget</class>
+   <extends>QWidget</extends>
+   <header>QVTKWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

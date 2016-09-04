@@ -4,7 +4,7 @@
 #include "framesource.h"
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/cudastereo.hpp>
+#include <opencv2/ximgproc/disparity_filter.hpp>
 
 #include <mutex>
 #include <thread>
@@ -25,6 +25,8 @@ public:
     void setRightSource(FrameSource& source);
 
     void getFrame(cv::Mat& map) override;
+
+    void getPoints(std::vector<cv::Vec3f>& pts, std::vector<cv::Vec3b> &colors) const;
 
     void startProcessing();
 
@@ -79,12 +81,18 @@ private:
 
     void initCalibration(const cv::Size& imgSize);
 
+    void fillPoints(const cv::Mat& disp, const cv::Mat& image3d, const cv::Mat &color, const cv::Rect& rc );
+
 private:
-    cv::Ptr<cv::StereoSGBM> stereoMatcher;
+    cv::Ptr<cv::StereoSGBM> leftStereoMatcher;
+    cv::Ptr<cv::StereoMatcher> rightStereoMatcher;
+    cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter;
 
     FrameSource* leftSource;
     FrameSource* rightSource;
     cv::Mat depthMap;
+    std::vector<cv::Vec3f> points3d;
+    std::vector<cv::Vec3b> pointsColor;
 
     mutable std::mutex outGuard;
     std::mutex processGuard;
