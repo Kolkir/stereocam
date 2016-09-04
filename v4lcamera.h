@@ -23,6 +23,8 @@ public:
 
     void getFrame(std::vector<char>& buffer);
 
+    void setParameter(const CameraParameter& param);
+
 private:
     ScopedVideoDevice device;
 

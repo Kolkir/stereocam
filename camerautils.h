@@ -56,6 +56,20 @@ bool stereoCalibrate(int squareSize,
                      const std::vector<std::string>& filesLeft,
                      const std::vector<std::string>& filesRight,
                      const std::string& fileName);
+
+struct CameraParameter
+{
+    int id;
+    std::string name;
+    int minimum;
+    int maximum;
+    int value;
+    CameraParameter();
+    CameraParameter(int id, const std::string& name, int minimum, int maximum, int value);
+};
+
+void GetCameraParameters(int fd, std::vector<CameraParameter>& parameters);
+
 }}
 
 #endif

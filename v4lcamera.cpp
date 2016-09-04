@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -110,71 +111,21 @@ V4LCamera::~V4LCamera()
     stopCapture();
 }
 
+void V4LCamera::setParameter(const CameraParameter& param)
+{
+    struct v4l2_control ctrl;
+    ctrl.id = param.id;
+    ctrl.value = param.value;
+    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
+    {
+        std::stringstream msg;
+        msg << "Unable to set " << param.name << " = " << param.value;
+        throw std::runtime_error(msg.str());
+    }
+}
+
 void V4LCamera::startCapture()
 {
-    struct v4l2_queryctrl queryctrl;
-
-    memset(&queryctrl, 0, sizeof(queryctrl));
-
-    queryctrl.id = V4L2_CTRL_CLASS_USER | V4L2_CTRL_FLAG_NEXT_CTRL;
-    while (0 == ioctl(device.fd(), VIDIOC_QUERYCTRL, &queryctrl)) {
-        if (V4L2_CTRL_ID2CLASS(queryctrl.id) != V4L2_CTRL_CLASS_USER)
-            break;
-        if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
-            continue;
-
-        struct v4l2_control ctrl;
-        ctrl.id = queryctrl.id;
-        ctrl.value = queryctrl.default_value;
-        ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl);
-
-        ioctl(device.fd(), VIDIOC_G_CTRL, &ctrl);
-
-        std::cout << "Control : " << queryctrl.name << " " << queryctrl.minimum << " - " << queryctrl.maximum  << " = " << ctrl.value<< std::endl;
-
-        //if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
-        //    enumerate_menu();
-
-        queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
-    }
-
-    //settings
-    struct v4l2_control ctrl;
-    ctrl.id = V4L2_CID_POWER_LINE_FREQUENCY;
-    ctrl.value = V4L2_CID_POWER_LINE_FREQUENCY_50HZ;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        throw std::runtime_error("Unable to set power line frequency");
-    }
-
-    ctrl.id = V4L2_CID_AUTO_WHITE_BALANCE;
-    ctrl.value = 0;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        throw std::runtime_error("Unable to set auto white balance");
-    }
-
-    ctrl.id = V4L2_CID_BACKLIGHT_COMPENSATION;
-    ctrl.value = 0;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        throw std::runtime_error("Unable to set backlight compemsation");
-    }
-
-    ctrl.id = V4L2_CID_SHARPNESS;
-    ctrl.value = 0;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        throw std::runtime_error("Unable to set sharpness");
-    }
-
-    ctrl.id = V4L2_CID_GAIN;
-    ctrl.value = 1;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        throw std::runtime_error("Unable to set gain");
-    }
-
     auto type = vide_type;
     if(ioctl(device.fd(), VIDIOC_STREAMON, &type) < 0)
     {

@@ -302,5 +302,53 @@ bool stereoCalibrate(int squareSize,
     return ok;
 }
 
+void GetCameraParameters(int fd, std::vector<CameraParameter> &parameters)
+{
+    parameters.clear();
+
+    struct v4l2_queryctrl queryctrl;
+    memset(&queryctrl, 0, sizeof(queryctrl));
+
+    queryctrl.id = V4L2_CTRL_CLASS_USER | V4L2_CTRL_FLAG_NEXT_CTRL;
+    while (0 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl))
+    {
+        if (V4L2_CTRL_ID2CLASS(queryctrl.id) != V4L2_CTRL_CLASS_USER)
+            break;
+        if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+            continue;
+
+        struct v4l2_control ctrl;
+        ctrl.id = queryctrl.id;
+        ctrl.value = queryctrl.default_value;
+        ioctl(fd, VIDIOC_S_CTRL, &ctrl);
+
+        ioctl(fd, VIDIOC_G_CTRL, &ctrl);
+
+        //std::cout << "Control : " << queryctrl.name << " " << queryctrl.minimum << " - " << queryctrl.maximum  << " = " << ctrl.value<< std::endl;
+
+        parameters.emplace_back(ctrl.id, reinterpret_cast<char*>(queryctrl.name), queryctrl.minimum, queryctrl.maximum, ctrl.value);
+
+        queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
+    }
+
+}
+
+CameraParameter::CameraParameter()
+    : id(-1)
+    , minimum(-1)
+    , maximum(-1)
+    , value(-1)
+{}
+
+CameraParameter::CameraParameter(int id, const std::string &name, int minimum, int maximum, int value)
+    : id(id)
+    , name(name)
+    , minimum(minimum)
+    , maximum(maximum)
+    , value(value)
+{
+
+}
+
 
 }}
