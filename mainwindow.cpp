@@ -257,6 +257,7 @@ void MainWindow::updateActions()
 
     ui->actionDepthMapView->setEnabled(realCamNum > 1);
     ui->actionPC3DView->setEnabled(realCamNum > 1);
+    ui->actionDepth_Map_snaphot->setEnabled(realCamNum > 1);
 
     if (imageExist)
     {                
