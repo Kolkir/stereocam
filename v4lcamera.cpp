@@ -55,7 +55,8 @@ V4LCamera::V4LCamera(int devId, const VideoDevFormat &format)
 
     if(ioctl(device.fd(), VIDIOC_S_FMT, &v4lformat) < 0)
     {
-        throw std::runtime_error("Unable to set device format : " + format.description);
+        auto err = errno;
+        throw std::runtime_error("Unable to set device format : " + format.description + " " + strerror(err));
     }    
 
     //memory buffers setup
