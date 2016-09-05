@@ -59,7 +59,7 @@ void Camera::capturing(int cameraId, camera::utils::VideoDevFormat format)
             }
             catch(std::exception& err)
             {
-                std::cerr << err.what();
+                std::cerr << err.what() << std::endl;
                 lastError = err.what();
                 break;
             }
@@ -69,7 +69,7 @@ void Camera::capturing(int cameraId, camera::utils::VideoDevFormat format)
     }
     catch(std::exception& err)
     {
-        std::cerr << err.what();
+        std::cerr << err.what() << std::endl;
         lastError = err.what();
         captureStarted.set_value(false);
     }
