@@ -7,6 +7,8 @@ FrameProcessor::FrameProcessor()
     , outChannel(-1)
     , outGray(false)    
     , outUndistort(false)
+    , outDrawLines(false)
+    , outNoiseFilter(false)
     , stop(false)
 {
 
@@ -37,15 +39,13 @@ void FrameProcessor::processing()
     int channel = -1;
     bool gray = false;
     bool undistort = false;
+    bool drawLines = false;
+    bool noiseFilter = false;
     cv::Mat frameUndistort;
-
-
-    cv::Mat fgmask;
-    cv::Ptr<cv::BackgroundSubtractorMOG2> bgmog = cv::createBackgroundSubtractorMOG2();
 
     cv::Mat medianTmp;
     std::deque<cv::Mat> medianQueue;
-    int maxMedianNum = 15;
+    size_t maxMedianNum = 15;
     std::vector<cv::Mat> medianList(maxMedianNum);
 
 
@@ -65,6 +65,8 @@ void FrameProcessor::processing()
             channel  = outChannel;
             gray = outGray;
             undistort = outUndistort;
+            drawLines = outDrawLines;
+            noiseFilter = outNoiseFilter;
             done = stop;
         }
 
@@ -72,7 +74,7 @@ void FrameProcessor::processing()
         {
             if (undistort)
             {
-                //TODO: fix sync outGuard
+                std::unique_lock<std::mutex> lock(outGuard);
                 if (!cameraMatrix.empty())
                 {
                     cv::undistort(tmp, frameUndistort, cameraMatrix, distCoeffs);
@@ -105,27 +107,24 @@ void FrameProcessor::processing()
             }
 
             //noise filter
-            if (tmp.channels() == 1)
+            if (tmp.channels() == 1 && noiseFilter)
             {
-                //bgmog->apply(tmp, fgmask);
-                //bgmog->getBackgroundImage(tmp);
-
                 if (medianQueue.size() == maxMedianNum)
                 {
                     medianQueue.pop_front();
                 }
                 medianQueue.push_back(tmp);
 
-                for(int i = 0; i < medianQueue.size(); i++)
+                for(size_t i = 0; i < medianQueue.size(); i++)
                 {
                     medianQueue[i].copyTo(medianList[i]);
                 }
 
                 if (medianQueue.size() == maxMedianNum)
                 {
-                    for(int i = 0; i < medianList.size(); i++)
+                    for(size_t i = 0; i < medianList.size(); i++)
                     {
-                        for(int j = i + 1; j < medianList.size(); j++)
+                        for(size_t j = i + 1; j < medianList.size(); j++)
                         {
                             medianList[i].copyTo(medianTmp);
                             min(medianList[i], medianList[j], medianList[i]);
@@ -139,7 +138,8 @@ void FrameProcessor::processing()
             }
 
             //draw center lines
-            /*{
+            if (drawLines)
+            {
                 cv::Scalar color(0,255,0);
                 if (tmp.channels() == 1)
                 {
@@ -169,7 +169,7 @@ void FrameProcessor::processing()
                     cv::Point hend2(tmp.cols/2+abs(li),tmp.rows/2-li);
                     cv::line(tmp, hstart2, hend2, color, 1);
                 }
-            }*/
+            }
             {
                 std::unique_lock<std::mutex> lock(outGuard);
                 tmp.copyTo(outFrame);
@@ -221,9 +221,31 @@ void FrameProcessor::setApplyUndistort(bool undistort)
     outUndistort = undistort;
 }
 
+void FrameProcessor::setApplyNoiseFilter(bool filter)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    outNoiseFilter = filter;
+}
+
+void FrameProcessor::setDrawLines(bool drawLines)
+{
+    std::unique_lock<std::mutex> lock(outGuard);
+    outDrawLines = drawLines;
+}
+
 bool FrameProcessor::isUndistortApplied() const
 {
     return outUndistort;
+}
+
+bool FrameProcessor::isNoiseFilterApplied() const
+{
+    return outNoiseFilter;
+}
+
+bool FrameProcessor::isDrawLines() const
+{
+    return outDrawLines;
 }
 
 bool FrameProcessor::loadCalibrationParams(const std::string &fileName)

@@ -97,6 +97,10 @@ private slots:
 
     void on_actionCameraParameters_triggered();
 
+    void on_actionNoiseFilter_triggered();
+
+    void on_actionDrawLines_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);

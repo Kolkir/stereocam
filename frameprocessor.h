@@ -37,7 +37,15 @@ public:
 
     void setApplyUndistort(bool undistort);
 
+    void setApplyNoiseFilter(bool filter);
+
+    void setDrawLines(bool drawLines);
+
     bool isUndistortApplied() const;
+
+    bool isNoiseFilterApplied() const;
+
+    bool isDrawLines() const;
 
     bool loadCalibrationParams(const std::string& fileName);
 
@@ -53,6 +61,8 @@ private:
     int outChannel;
     bool outGray;
     bool outUndistort;
+    bool outDrawLines;
+    bool outNoiseFilter;
     cv::Mat cameraMatrix;
     cv::Mat distCoeffs;
     cv::Mat mapx;

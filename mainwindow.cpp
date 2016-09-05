@@ -254,6 +254,8 @@ void MainWindow::updateActions()
     ui->actionSnapshot->setEnabled(canSnap > 0);
     ui->actionLoad_Calibration->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
+    ui->actionNoiseFilter->setEnabled(enable);
+    ui->actionDrawLines->setEnabled(enable);
     ui->actionLoad_Stereo_Calibration->setEnabled(enable);
     ui->actionCameraParameters->setEnabled(enable);
 
@@ -739,4 +741,20 @@ void MainWindow::on_actionCameraParameters_triggered()
     CameraParametersDialog* cameraParamsDlg = new CameraParametersDialog(this);
 
     cameraParamsDlg->exec();
+}
+
+void MainWindow::on_actionNoiseFilter_triggered()
+{
+    frameProcessor[0].setApplyNoiseFilter(!frameProcessor[0].isNoiseFilterApplied());
+    frameProcessor[1].setApplyNoiseFilter(!frameProcessor[1].isNoiseFilterApplied());
+    ui->actionNoiseFilter->setChecked(frameProcessor[0].isNoiseFilterApplied() &&
+                                    frameProcessor[1].isNoiseFilterApplied());
+}
+
+void MainWindow::on_actionDrawLines_triggered()
+{
+    frameProcessor[0].setDrawLines(!frameProcessor[0].isDrawLines());
+    frameProcessor[1].setDrawLines(!frameProcessor[1].isDrawLines());
+    ui->actionDrawLines->setChecked(frameProcessor[0].isDrawLines() &&
+                                    frameProcessor[1].isDrawLines());
 }

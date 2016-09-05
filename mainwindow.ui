@@ -196,14 +196,19 @@
      <string>Camera</string>
     </property>
     <addaction name="actionCameraSetup"/>
+    <addaction name="actionCameraParameters"/>
+    <addaction name="separator"/>
     <addaction name="actionCalibrate"/>
     <addaction name="actionStereo_Calibrate"/>
     <addaction name="actionLoad_Calibration"/>
     <addaction name="actionLoad_Stereo_Calibration"/>
+    <addaction name="separator"/>
     <addaction name="actionUndistort"/>
+    <addaction name="actionNoiseFilter"/>
+    <addaction name="actionDrawLines"/>
+    <addaction name="separator"/>
     <addaction name="actionSnapshot"/>
     <addaction name="actionDepth_Map_snaphot"/>
-    <addaction name="actionCameraParameters"/>
    </widget>
    <widget class="QMenu" name="menuView_2">
     <property name="title">
@@ -389,6 +394,25 @@
   <action name="actionCameraParameters">
    <property name="text">
     <string>Parameters ...</string>
+   </property>
+  </action>
+  <action name="actionNoiseFilter">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Noise filter</string>
+   </property>
+   <property name="toolTip">
+    <string>Noise filter</string>
+   </property>
+  </action>
+  <action name="actionDrawLines">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Draw lines</string>
    </property>
   </action>
  </widget>
