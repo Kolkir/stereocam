@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "calibparamsdialog.h"
 #include "camerasetupdialog.h"
+#include "cameraparametersdialog.h"
 
 #include <QtWidgets>
 
@@ -254,6 +255,7 @@ void MainWindow::updateActions()
     ui->actionLoad_Calibration->setEnabled(enable);
     ui->actionUndistort->setEnabled(enable);
     ui->actionLoad_Stereo_Calibration->setEnabled(enable);
+    ui->actionCameraParameters->setEnabled(enable);
 
     ui->actionDepthMapView->setEnabled(realCamNum > 1);
     ui->actionPC3DView->setEnabled(realCamNum > 1);
@@ -730,4 +732,11 @@ void MainWindow::on_actionPC3DView_triggered()
         viewer->updateCamera();
         ui->pc3dVtk->update ();
     }
+}
+
+void MainWindow::on_actionCameraParameters_triggered()
+{
+    CameraParametersDialog* cameraParamsDlg = new CameraParametersDialog(this);
+
+    cameraParamsDlg->exec();
 }

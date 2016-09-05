@@ -302,7 +302,7 @@ bool stereoCalibrate(int squareSize,
     return ok;
 }
 
-void GetCameraParameters(int fd, std::vector<CameraParameter> &parameters)
+void getCameraParameters(int fd, std::vector<CameraParameter> &parameters)
 {
     parameters.clear();
 
@@ -348,6 +348,19 @@ CameraParameter::CameraParameter(int id, const std::string &name, int minimum, i
     , value(value)
 {
 
+}
+
+void setCameraParameter(int fd, const CameraParameter &param)
+{
+    struct v4l2_control ctrl;
+    ctrl.id = param.id;
+    ctrl.value = param.value;
+    if(ioctl(fd, VIDIOC_S_CTRL, &ctrl) < 0)
+    {
+        std::stringstream msg;
+        msg << "Unable to set " << param.name << " = " << param.value;
+        throw std::runtime_error(msg.str());
+    }
 }
 
 

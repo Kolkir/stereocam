@@ -68,7 +68,9 @@ struct CameraParameter
     CameraParameter(int id, const std::string& name, int minimum, int maximum, int value);
 };
 
-void GetCameraParameters(int fd, std::vector<CameraParameter>& parameters);
+void getCameraParameters(int fd, std::vector<CameraParameter>& parameters);
+
+void setCameraParameter(int fd, const CameraParameter& param);
 
 }}
 

@@ -160,7 +160,7 @@
      <x>0</x>
      <y>0</y>
      <width>801</width>
-     <height>20</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -203,6 +203,7 @@
     <addaction name="actionUndistort"/>
     <addaction name="actionSnapshot"/>
     <addaction name="actionDepth_Map_snaphot"/>
+    <addaction name="actionCameraParameters"/>
    </widget>
    <widget class="QMenu" name="menuView_2">
     <property name="title">
@@ -383,6 +384,11 @@
    </property>
    <property name="text">
     <string>Point Cloud 3D</string>
+   </property>
+  </action>
+  <action name="actionCameraParameters">
+   <property name="text">
+    <string>Parameters ...</string>
    </property>
   </action>
  </widget>

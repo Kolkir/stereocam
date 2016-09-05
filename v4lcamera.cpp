@@ -111,19 +111,6 @@ V4LCamera::~V4LCamera()
     stopCapture();
 }
 
-void V4LCamera::setParameter(const CameraParameter& param)
-{
-    struct v4l2_control ctrl;
-    ctrl.id = param.id;
-    ctrl.value = param.value;
-    if(ioctl(device.fd(), VIDIOC_S_CTRL, &ctrl) < 0)
-    {
-        std::stringstream msg;
-        msg << "Unable to set " << param.name << " = " << param.value;
-        throw std::runtime_error(msg.str());
-    }
-}
-
 void V4LCamera::startCapture()
 {
     auto type = vide_type;

@@ -95,6 +95,8 @@ private slots:
 
     void on_actionPC3DView_triggered();
 
+    void on_actionCameraParameters_triggered();
+
 private:
 
     void setImage(const QImage &img, int imgIndex);
