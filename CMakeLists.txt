@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(stereocam)
 
+add_subdirectory(cufilter)
+
 # Tell CMake to run moc when necessary:
 set(CMAKE_AUTOMOC ON)
 # Tell CMake to run uic when necessary:
@@ -39,8 +41,9 @@ file(GLOB SRC_FILES src/*
     "*.cpp"
     "*.ui"
 )
+
 add_executable(stereocam ${SRC_FILES})
-target_link_libraries(stereocam ${OpenCV_LIBS} ${PCL_LIBRARIES})# ${VTK_LIBRARIES})
+target_link_libraries(stereocam cu_filter ${OpenCV_LIBS} ${PCL_LIBRARIES})# ${VTK_LIBRARIES})
 qt5_use_modules(stereocam Widgets)
 
 
