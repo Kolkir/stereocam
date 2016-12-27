@@ -2,6 +2,7 @@
 #define FRAMEPROCESSOR_H
 
 #include "framesource.h"
+#include "cufilter/cu_median.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -77,6 +78,8 @@ private:
 
     std::thread thread;
     bool stop;
+
+    std::unique_ptr<cuda::Median3DFilter> filter3d;
 
 };
 

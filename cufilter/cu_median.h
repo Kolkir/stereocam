@@ -16,6 +16,9 @@ class Median3DFilter final {
 
     void getFilteredFrame(unsigned char* data);
 
+    size_t getWidth() const;
+    size_t getHeight() const;
+
   private:
     size_t width;
     size_t height;

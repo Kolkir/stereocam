@@ -81,4 +81,12 @@ void Median3DFilter::getFilteredFrame(unsigned char *data)
     CHECK(cudaMemcpy(data, cudaResult, frameBytesNumber, cudaMemcpyDeviceToHost));
 }
 
+size_t Median3DFilter::getWidth() const {
+    return width;
+}
+
+size_t Median3DFilter::getHeight() const {
+    return height;
+}
+
 }

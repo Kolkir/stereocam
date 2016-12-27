@@ -9,7 +9,7 @@ FrameProcessor::FrameProcessor()
     , outUndistort(false)
     , outDrawLines(false)
     , outNoiseFilter(false)
-    , stop(false)
+    , stop(false)    
 {
 
 }
@@ -42,12 +42,6 @@ void FrameProcessor::processing()
     bool drawLines = false;
     bool noiseFilter = false;
     cv::Mat frameUndistort;
-
-    cv::Mat medianTmp;
-    std::deque<cv::Mat> medianQueue;
-    size_t maxMedianNum = 15;
-    std::vector<cv::Mat> medianList(maxMedianNum);
-
 
     bool done =false;
     while(!done)
@@ -109,31 +103,16 @@ void FrameProcessor::processing()
             //noise filter
             if (tmp.channels() == 1 && noiseFilter)
             {
-                if (medianQueue.size() == maxMedianNum)
-                {
-                    medianQueue.pop_front();
-                }
-                medianQueue.push_back(tmp);
 
-                for(size_t i = 0; i < medianQueue.size(); i++)
-                {
-                    medianQueue[i].copyTo(medianList[i]);
+                if (!filter3d ||
+                     filter3d->getWidth() != tmp.cols ||
+                     filter3d->getHeight() != tmp.rows){
+                    filter3d.reset(new cuda::Median3DFilter(tmp.cols, tmp.rows, 8, 15));
                 }
 
-                if (medianQueue.size() == maxMedianNum)
-                {
-                    for(size_t i = 0; i < medianList.size(); i++)
-                    {
-                        for(size_t j = i + 1; j < medianList.size(); j++)
-                        {
-                            medianList[i].copyTo(medianTmp);
-                            min(medianList[i], medianList[j], medianList[i]);
-                            max(medianList[j], medianTmp, medianList[j]);
-                        }
-                    }
+                filter3d->pushFrame(tmp.data);
 
-                    tmp = medianList[medianList.size() / 2];
-                }
+                filter3d->getFilteredFrame(tmp.data);
 
             }
 
